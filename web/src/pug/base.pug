@@ -1,0 +1,20 @@
+//- view
+doctype html
+html
+  include @/bootstrap.ldui/dist/index.pug
+  include @/ldview/dist/index.pug
+  block vars
+  head
+    block prehead
+    +css("/assets/lib/bootstrap/main/css/bootstrap.min.css")
+    +css("/assets/lib/bootstrap.ldui/main/bootstrap.ldui.min.css")
+    +css("/assets/lib/@plotdb/sheet/dev/index.min.css")
+    +css("/assets/lib/@loadingio/loading.css/main/loading.min.css")
+    block head
+  body
+    block body
+    +script("/assets/lib/@loadingio/ldquery/main/ldq.min.js")
+    +script("/assets/lib/ldview/main/index.min.js")
+    +script("/assets/lib/@plotdb/sheet/dev/index.min.js")
+    +script("/assets/lib/@plotdb/datum/dev/index.min.js")
+    block script

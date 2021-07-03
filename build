@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+echo "prepare..."
+rm -rf dist
+mkdir -p dist
+
+echo "building livescript files ... "
+cat src/index.ls > dist/index.ls
+cat src/type.ls >> dist/index.ls
+
+echo "build livescript files to index.js ... "
+./node_modules/.bin/lsc -cp --no-header dist/index.ls > dist/index.js
+rm dist/index.ls
+echo "minify index.js -> index.min.js ..."
+./node_modules/.bin/uglifyjs dist/index.js > dist/index.min.js
+
+echo "copy dist to web ..."
+rm -rf "web/static/assets/lib/@plotdb/datum/dev/"
+mkdir -p "web/static/assets/lib/@plotdb/datum/dev/"
+cp -R dist/* "web/static/assets/lib/@plotdb/datum/dev/"

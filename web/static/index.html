@@ -1,0 +1,47 @@
+<!DOCTYPE html><html><head><link rel="stylesheet" type="text/css" href="/assets/lib/bootstrap/main/css/bootstrap.min.css"><link rel="stylesheet" type="text/css" href="/assets/lib/bootstrap.ldui/main/bootstrap.ldui.min.css"><link rel="stylesheet" type="text/css" href="/assets/lib/@plotdb/sheet/dev/index.min.css"><link rel="stylesheet" type="text/css" href="/assets/lib/@loadingio/loading.css/main/loading.min.css"><style type="text/css">.cell.fixed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style></head><body><div class="w-1024 rwd mx-auto my-4"><div class="aspect-ratio ratio-3by2"><div class="root border shadow-sm rounded"></div></div></div><script type="text/javascript" src="/assets/lib/@loadingio/ldquery/main/ldq.min.js"></script><script type="text/javascript" src="/assets/lib/ldview/main/index.min.js"></script><script type="text/javascript" src="/assets/lib/@plotdb/sheet/dev/index.min.js"></script><script type="text/javascript" src="/assets/lib/@plotdb/datum/dev/index.min.js"></script><script>var ds, s, ds2, ret, dimension, bind;
+ds = datum.asDb([["year", "category", "attribute", "value"], [2000, "Online", "revenue", 90], [2000, "Offline", "revenue", 100], [2000, "Online", "cost", 80], [2000, "Offline", "cost", 70], [2001, "Online", "revenue", 100], [2001, "Offline", "revenue", 115], [2001, "Online", "cost", 85], [2001, "Offline", "cost", 76], [2002, "Online", "revenue", 105], [2002, "Offline", "revenue", 122], [2002, "Online", "cost", 86], [2002, "Offline", "cost", 72], [2003, "Online", "revenue", 135], [2003, "Offline", "revenue", 115], [2003, "Online", "cost", 90], [2003, "Offline", "cost", 65]]);
+s = new sheet({
+  root: ld$.find('.root', 0),
+  data: datum.asSheet(ds),
+  frozen: {
+    row: 1
+  },
+  fixed: {
+    row: 1
+  }
+});
+ds2 = datum.pivot(ds, "category", ['year', 'attribute']);
+console.log(ds2);
+ret = datum.type.get(ds);
+console.log(ret);
+ret.map(function(d, i){
+  var idx, c;
+  idx = ds.head.indexOf(d.key);
+  c = s.cell({
+    x: idx + 1,
+    y: 1
+  });
+  return c.textContent = d.type;
+});
+dimension = {
+  x: {
+    type: 'O',
+    priority: 1
+  },
+  y: {
+    type: 'R',
+    priority: 2
+  },
+  cat: {
+    type: 'C',
+    priority: 3
+  }
+};
+bind = datum.type.bind(ds2, dimension);
+console.log(bind);
+s.data(datum.asSheet(ds2));</script></body></html>
