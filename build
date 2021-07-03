@@ -7,6 +7,7 @@ mkdir -p dist
 echo "building livescript files ... "
 cat src/index.ls > dist/index.ls
 cat src/type.ls >> dist/index.ls
+cat src/sample.ls >> dist/index.ls
 
 echo "build livescript files to index.js ... "
 ./node_modules/.bin/lsc -cp --no-header dist/index.ls > dist/index.js

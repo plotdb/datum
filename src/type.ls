@@ -5,7 +5,10 @@ datum.type =
     len = data
       .filter -> !isNaN(parseFloat(it))
       .length
-    (len / data.length)
+    r = (len / data.length)
+    o = datum.type.O opt
+    if o == r or o > 0.9 => r = o * 0.99
+    r
 
   O: (opt = {}) ->
     data = [] ++ opt.data
@@ -16,9 +19,14 @@ datum.type =
         hash[if data[i] > data[i - 1] => "#{data[i]}:#{data[i - 1]}" else "#{data[i - 1]}:#{data[i]}"] = true
       else delta = data[i] - data[i - 1]
       hash[delta] = true
-    return 1 / ([k for k of hash].filter(->it != \0).length or 2)
+    o = 1 / ([k for k of hash].filter(->it != \0).length or 2)
 
-  N: (opt={}) -> 1 - (datum.type.R opt)
+  N: (opt={}) ->
+    n = 1 - (datum.type.R opt)
+    c = datum.type.C opt
+    if c > 0.85 => n = c * 0.99
+    n
+
 
   C: (opt={}) ->
     len = Array.from(new Set(opt.data)).length 

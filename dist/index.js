@@ -304,7 +304,7 @@
   }
   datum.type = {
     R: function(opt){
-      var data, len;
+      var data, len, r, o;
       opt == null && (opt = {});
       data = opt.data.filter(function(it){
         return !(!it || (it + "").trim() === '');
@@ -312,10 +312,15 @@
       len = data.filter(function(it){
         return !isNaN(parseFloat(it));
       }).length;
-      return len / data.length;
+      r = len / data.length;
+      o = datum.type.O(opt);
+      if (o === r || o > 0.9) {
+        r = o * 0.99;
+      }
+      return r;
     },
     O: function(opt){
-      var data, hash, i$, to$, i, delta, k;
+      var data, hash, i$, to$, i, delta, o, k;
       opt == null && (opt = {});
       data = [].concat(opt.data);
       data.sort(function(a, b){
@@ -333,7 +338,7 @@
         }
         hash[delta] = true;
       }
-      return 1 / ((function(){
+      return o = 1 / ((function(){
         var results$ = [];
         for (k in hash) {
           results$.push(k);
@@ -344,8 +349,14 @@
       }).length || 2);
     },
     N: function(opt){
+      var n, c;
       opt == null && (opt = {});
-      return 1 - datum.type.R(opt);
+      n = 1 - datum.type.R(opt);
+      c = datum.type.C(opt);
+      if (c > 0.85) {
+        n = c * 0.99;
+      }
+      return n;
     },
     C: function(opt){
       var len, maxlen, ret, ref$, ref1$, ref2$;
@@ -496,6 +507,95 @@
       function fn2$(it){
         var ref$;
         return ref$ = it.used, delete it.used, ref$;
+      }
+    }
+  };
+  datum.sample = {
+    context: {},
+    C: ['books', 'business', 'education', 'entertainment', 'finance', 'food', 'games', 'health', 'lifestyle', 'medical', 'music', 'navigation', 'news', 'photography', 'productivity', 'social', 'network', 'sports', 'travel', 'utilities', 'weather'],
+    N: ["The Perfect Storm", "Philadelphia Story", "Planet of the Apes", "Patton", "Pocahontas", "Pinoccio", "Quills", "Raiders of the Lost Ark", "Romeo and Juliet", "Snow White", "Shine", "Some Like It Hot", "Stardust", "Startrek", "The Seven Year Itch", "The Sound of Music", "Sabrina", "Sixth Sense", "The Silence of the Lambs", "Stargate", "Sunset Boulevard", "Superman"],
+    generate: function(arg$){
+      var count, binding, ref$, gen, idx, fields, k, v, u, keys, offset, i$, i, ret, hint, value, range, val, mod;
+      count = arg$.count, binding = arg$.binding;
+      ref$ = [
+        {
+          raw: [],
+          binding: {}
+        }, 0, count || 10
+      ], gen = ref$[0], idx = ref$[1], count = ref$[2];
+      if (!fields) {
+        fields = {};
+      }
+      for (k in binding) {
+        v = binding[k];
+        u = Array.isArray(v)
+          ? v
+          : [v];
+        keys = u.map(fn$);
+        if (Array.isArray(v)) {
+          gen.binding[k] = keys.map(fn1$);
+        } else {
+          gen.binding[k] = {
+            key: (ref$ = fields[keys[0]]).key,
+            name: ref$.name
+          };
+        }
+      }
+      offset = Math.round(100 * Math.random());
+      for (i$ = 0; i$ < count; ++i$) {
+        i = i$;
+        ret = {};
+        for (k in fields) {
+          v = fields[k];
+          hint = v.hint;
+          value = (fn2$());
+          ret[v.key] = value;
+        }
+        gen.raw.push(ret);
+      }
+      return gen;
+      function fn$(d, i){
+        var key, name;
+        key = d.key || "field-" + idx;
+        name = d.name || key;
+        fields[idx] = {
+          key: key,
+          name: name,
+          hint: d
+        };
+        idx = idx + 1;
+        return idx - 1;
+      }
+      function fn1$(it){
+        var ref$;
+        return {
+          key: (ref$ = fields[it]).key,
+          name: ref$.name
+        };
+      }
+      function fn2$(){
+        var ref$, ref1$;
+        switch (hint.type) {
+        case 'R':
+          range = hint.range || [0, 100];
+          val = Math.random() * (range[1] - range[0]) + range[0];
+          if (range[1] - range[0] < 1) {
+            return val;
+          } else {
+            return Math.round(val);
+          }
+        case 'N':
+          return datum.sample.N[i % datum.sample.N.length];
+        case 'C':
+          mod = (ref$ = hint.count != null
+            ? hint.count
+            : (ref$ = Math.round(count / 10)) > 4 ? ref$ : 4) < (ref1$ = datum.sample.C.length) ? ref$ : ref1$;
+          return datum.sample.C[(hint.random ? Math.floor(Math.random() * count) : i) % mod];
+        case 'O':
+          return Math.floor(i / (hint.repeat != null ? hint.repeat : 1)) + (hint.offset != null ? hint.offset : offset);
+        default:
+          return "...";
+        }
       }
     }
   };

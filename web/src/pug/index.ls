@@ -41,3 +41,19 @@ bind = datum.type.bind ds2, dimension
 console.log bind
 
 s.data datum.as-sheet ds2
+
+binding = 
+  x: {type: \O, key: \order, offset: 1980, repeat: 3}
+  c: {type: \C, key: \category, count: 3, random: false}
+  n: {type: \N, key: \name}
+  y: [0 to 3].map -> {type: \R, key: "sensor-#it", range: [50, 100]}
+ret = datum.sample.generate {count: 100, binding}
+ds3 = datum.as-db ret.raw
+console.log ret
+s.data datum.as-sheet ds3
+ret = datum.type.get ds3
+console.log ret
+ret.map (d,i) ->
+  idx = ds3.head.indexOf(d.key)
+  c = s.cell x: (idx + 1), y: 1 
+  c.textContent = d.type

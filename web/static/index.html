@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
 }
-</style></head><body><div class="w-1024 rwd mx-auto my-4"><div class="aspect-ratio ratio-3by2"><div class="root border shadow-sm rounded"></div></div></div><script type="text/javascript" src="/assets/lib/@loadingio/ldquery/main/ldq.min.js"></script><script type="text/javascript" src="/assets/lib/ldview/main/index.min.js"></script><script type="text/javascript" src="/assets/lib/@plotdb/sheet/dev/index.min.js"></script><script type="text/javascript" src="/assets/lib/@plotdb/datum/dev/index.min.js"></script><script>var ds, s, ds2, ret, dimension, bind;
+</style></head><body><div class="w-1024 rwd mx-auto my-4"><div class="aspect-ratio ratio-3by2"><div class="root border shadow-sm rounded"></div></div></div><script type="text/javascript" src="/assets/lib/@loadingio/ldquery/main/ldq.min.js"></script><script type="text/javascript" src="/assets/lib/ldview/main/index.min.js"></script><script type="text/javascript" src="/assets/lib/@plotdb/sheet/dev/index.min.js"></script><script type="text/javascript" src="/assets/lib/@plotdb/datum/dev/index.min.js"></script><script>var ds, s, ds2, ret, dimension, bind, binding, ds3;
 ds = datum.asDb([["year", "category", "attribute", "value"], [2000, "Online", "revenue", 90], [2000, "Offline", "revenue", 100], [2000, "Online", "cost", 80], [2000, "Offline", "cost", 70], [2001, "Online", "revenue", 100], [2001, "Offline", "revenue", 115], [2001, "Online", "cost", 85], [2001, "Offline", "cost", 76], [2002, "Online", "revenue", 105], [2002, "Offline", "revenue", 122], [2002, "Online", "cost", 86], [2002, "Offline", "cost", 72], [2003, "Online", "revenue", 135], [2003, "Offline", "revenue", 115], [2003, "Online", "cost", 90], [2003, "Offline", "cost", 65]]);
 s = new sheet({
   root: ld$.find('.root', 0),
@@ -44,4 +44,47 @@ dimension = {
 };
 bind = datum.type.bind(ds2, dimension);
 console.log(bind);
-s.data(datum.asSheet(ds2));</script></body></html>
+s.data(datum.asSheet(ds2));
+binding = {
+  x: {
+    type: 'O',
+    key: 'order',
+    offset: 1980,
+    repeat: 3
+  },
+  c: {
+    type: 'C',
+    key: 'category',
+    count: 3,
+    random: false
+  },
+  n: {
+    type: 'N',
+    key: 'name'
+  },
+  y: [0, 1, 2, 3].map(function(it){
+    return {
+      type: 'R',
+      key: "sensor-" + it,
+      range: [50, 100]
+    };
+  })
+};
+ret = datum.sample.generate({
+  count: 100,
+  binding: binding
+});
+ds3 = datum.asDb(ret.raw);
+console.log(ret);
+s.data(datum.asSheet(ds3));
+ret = datum.type.get(ds3);
+console.log(ret);
+ret.map(function(d, i){
+  var idx, c;
+  idx = ds3.head.indexOf(d.key);
+  c = s.cell({
+    x: idx + 1,
+    y: 1
+  });
+  return c.textContent = d.type;
+});</script></body></html>
