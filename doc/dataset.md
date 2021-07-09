@@ -20,9 +20,16 @@ Sheet representation of dataset is usually for importing data.
 
 With DB ( Database ) view, dataset are separated into following parts:
 
- - name: a string for dataset name
- - head: an string array of column names.
- - body: an object array for storing data.
+ - mandatory fields:
+   - `head`: an string array of column names.
+   - `body`: an object array for storing data.
+ - optional fields:
+   - `name`: a string for dataset name. default `unnamed` if omitted.
+   - `sheet`: sheet counterpart of this object.
+   - `meta`: meta information. user defined.
+   - `unit`: unit for each columns.
+   - `mag`: magnitude for each columns.
+
 
 For example:
 
