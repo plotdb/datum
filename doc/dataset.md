@@ -27,8 +27,8 @@ With DB ( Database ) view, dataset are separated into following parts:
    - `name`: a string for dataset name. default `unnamed` if omitted.
    - `sheet`: sheet counterpart of this object.
    - `meta`: meta information. user defined.
-   - `unit`: unit for each columns.
-   - `mag`: magnitude for each columns.
+   - `unit`: an object, mapping head names to corresponding unit.
+   - `mag`: an object, mapping head names to corresponding magnitude.
 
 
 For example:

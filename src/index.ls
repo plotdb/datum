@@ -86,11 +86,12 @@ datum =
     for k,v of hash => ret.push {name: "#{data.name or 'unnamed'}#{@_sep}#k", head: head, body: v}
     return ret
 
-  pivot: (data, col, jc) ->
+  pivot: (opt = {}) ->
+    {data, col, join-col} = opt
     ds = @split data, col
     base = ds.splice 0, 1 .0
     for i from 0 til ds.length =>
-      base = @join base, ds[i], jc
+      base = @join base, ds[i], join-col
     return base
 
   unpivot: (data, cols = [], name = "item", order = 0) ->
@@ -119,26 +120,44 @@ datum =
     ret = @concat tables
     return ret
 
-  group: (data, col, agg = {}) ->
+  group: (opt = {}) ->
+    {data,col,aggregator,group-func} = opt
+    if !group-func => group-func = (->it)
+    if !aggregator => aggregator = {}
+    col = if Array.isArray(col) => col else [col]
     data = @as-db data
-    hs = data.head.filter -> !(it == col) and (agg[it] != null)
-    keys = Array.from(new Set(data.body.map (b) -> b[col]))
-    ret = keys.map (k) ->
-      list = data.body
-        .filter -> it[col] == k
+    hs = data.head.filter -> !(it in col) and (aggregator[it] != null)
+    keys = Array.from(new Set(data.body.map (b) -> JSON.stringify(Object.fromEntries(col.map -> [it, b[it]]))))
+    hash = {}
+    keys.map (raw) ->
+      rkey = JSON.parse(raw)
+      gkey = {}
+      for k,v of rkey => gkey[k] = if typeof(group-func) == \function => group-func(v) else group-func[k](v)
+      gkey = JSON.stringify(gkey)
+      if !hash[gkey] => hash[gkey] = new Set!
+      hash[gkey].add raw
+    newkeys = [k for k of hash]
+    ret = newkeys.map (nk) ->
+      list = Array.from(hash[nk])
+      nk = JSON.parse(nk)
+      list = list
+        .map (k) ->
+          k = JSON.parse(k)
+          data.body.filter (b) -> col.filter((c) -> b[c] != k[c]).length == 0
+        .reduce(((a,b) -> a ++ b), [])
       ret = Object.fromEntries(
         hs.map (h) ->
           ls = list.map((l) -> l[h])
-          ret = if agg[h] => agg[h] ls else ls.length
+          ret = if aggregator[h] => aggregator[h] ls else ls.length
           [h,ret]
       )
-      ret[col] = k
+      col.map (c) -> ret[c] = nk[c]
       ret
-    return {head: ([col] ++ hs), body: ret, name: data.name}
+    return {head: (col ++ hs), body: ret, name: data.name}
 
   agg:
-    average: -> it.reduce(((a,b) -> a + +b),0) / (it.length or 1)
-    sum: -> it.reduce(((a,b) -> a + +b),0)
+    average: -> it.reduce(((a,b) -> a + (if isNaN(+b) => 0 else +b)),0) / (it.length or 1)
+    sum: -> it.reduce(((a,b) -> a + (if isNaN(+b) => 0 else +b)),0)
     count: -> it.length
     first: -> it.0 or ''
 

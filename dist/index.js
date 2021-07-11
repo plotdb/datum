@@ -190,13 +190,15 @@
       }
       return ret;
     },
-    pivot: function(data, col, jc){
-      var ds, base, i$, to$, i;
+    pivot: function(opt){
+      var data, col, joinCol, ds, base, i$, to$, i;
+      opt == null && (opt = {});
+      data = opt.data, col = opt.col, joinCol = opt.joinCol;
       ds = this.split(data, col);
       base = ds.splice(0, 1)[0];
       for (i$ = 0, to$ = ds.length; i$ < to$; ++i$) {
         i = i$;
-        base = this.join(base, ds[i], jc);
+        base = this.join(base, ds[i], joinCol);
       }
       return base;
     },
@@ -244,36 +246,83 @@
       ret = this.concat(tables);
       return ret;
     },
-    group: function(data, col, agg){
-      var hs, keys, ret;
-      agg == null && (agg = {});
+    group: function(opt){
+      var data, col, aggregator, groupFunc, hs, keys, hash, newkeys, res$, k, ret;
+      opt == null && (opt = {});
+      data = opt.data, col = opt.col, aggregator = opt.aggregator, groupFunc = opt.groupFunc;
+      if (!groupFunc) {
+        groupFunc = function(it){
+          return it;
+        };
+      }
+      if (!aggregator) {
+        aggregator = {};
+      }
+      col = Array.isArray(col)
+        ? col
+        : [col];
       data = this.asDb(data);
       hs = data.head.filter(function(it){
-        return !(it === col) && agg[it] !== null;
+        return !in$(it, col) && aggregator[it] !== null;
       });
       keys = Array.from(new Set(data.body.map(function(b){
-        return b[col];
+        return JSON.stringify(Object.fromEntries(col.map(function(it){
+          return [it, b[it]];
+        })));
       })));
-      ret = keys.map(function(k){
+      hash = {};
+      keys.map(function(raw){
+        var rkey, gkey, k, v;
+        rkey = JSON.parse(raw);
+        gkey = {};
+        for (k in rkey) {
+          v = rkey[k];
+          gkey[k] = typeof groupFunc === 'function'
+            ? groupFunc(v)
+            : groupFunc[k](v);
+        }
+        gkey = JSON.stringify(gkey);
+        if (!hash[gkey]) {
+          hash[gkey] = new Set();
+        }
+        return hash[gkey].add(raw);
+      });
+      res$ = [];
+      for (k in hash) {
+        res$.push(k);
+      }
+      newkeys = res$;
+      ret = newkeys.map(function(nk){
         var list, ret;
-        list = data.body.filter(function(it){
-          return it[col] === k;
-        });
+        list = Array.from(hash[nk]);
+        nk = JSON.parse(nk);
+        list = list.map(function(k){
+          k = JSON.parse(k);
+          return data.body.filter(function(b){
+            return col.filter(function(c){
+              return b[c] !== k[c];
+            }).length === 0;
+          });
+        }).reduce(function(a, b){
+          return a.concat(b);
+        }, []);
         ret = Object.fromEntries(hs.map(function(h){
           var ls, ret;
           ls = list.map(function(l){
             return l[h];
           });
-          ret = agg[h]
-            ? agg[h](ls)
+          ret = aggregator[h]
+            ? aggregator[h](ls)
             : ls.length;
           return [h, ret];
         }));
-        ret[col] = k;
+        col.map(function(c){
+          return ret[c] = nk[c];
+        });
         return ret;
       });
       return {
-        head: [col].concat(hs),
+        head: col.concat(hs),
         body: ret,
         name: data.name
       };
@@ -281,12 +330,16 @@
     agg: {
       average: function(it){
         return it.reduce(function(a, b){
-          return a + +b;
+          return a + (isNaN(+b)
+            ? 0
+            : +b);
         }, 0) / (it.length || 1);
       },
       sum: function(it){
         return it.reduce(function(a, b){
-          return a + +b;
+          return a + (isNaN(+b)
+            ? 0
+            : +b);
         }, 0);
       },
       count: function(it){
