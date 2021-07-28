@@ -23,7 +23,7 @@ s = new sheet do
   frozen: row: 1
   fixed: row: 1
 
-ds2 = datum.pivot ds, "category", <[year attribute]>
+ds2 = datum.pivot {data: ds, col: "category", join-cols: <[year attribute]>}
 console.log ds2
 
 ret = datum.type.get ds

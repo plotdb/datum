@@ -87,8 +87,10 @@
         }));
       }
     },
-    join: function(d1, d2, jc){
-      var sep, ref$, h1, h2, b1, b2, n1, n2, s1, s2, i$, to$, i, head, ret, body;
+    join: function(arg$){
+      var d1, d2, joinCols, jc, sep, ref$, h1, h2, b1, b2, n1, n2, s1, s2, i$, to$, i, head, ret, body;
+      d1 = arg$.d1, d2 = arg$.d2, joinCols = arg$.joinCols;
+      jc = joinCols;
       sep = this._sep;
       ref$ = [d1, d2].map(function(d){
         return datum.asDb(d);
@@ -161,13 +163,9 @@
         body: body
       };
     },
-    unjoin: function(data, cols){
-      var head;
-      data = this.asDb(data);
-      return head = [].concat(data.head);
-    },
-    split: function(data, col){
-      var head, idx, hash, ret, k, v;
+    split: function(arg$){
+      var data, col, head, idx, hash, ret, k, v;
+      data = arg$.data, col = arg$.col;
       data = this.asDb(data);
       head = [].concat(data.head);
       if (!~(idx = head.indexOf(col))) {
@@ -191,22 +189,34 @@
       return ret;
     },
     pivot: function(opt){
-      var data, col, joinCol, ds, base, i$, to$, i;
+      var data, col, joinCols, ds, base, i$, to$, i;
       opt == null && (opt = {});
-      data = opt.data, col = opt.col, joinCol = opt.joinCol;
-      ds = this.split(data, col);
+      data = opt.data, col = opt.col, joinCols = opt.joinCols;
+      ds = this.split({
+        data: data,
+        col: col
+      });
       base = ds.splice(0, 1)[0];
       for (i$ = 0, to$ = ds.length; i$ < to$; ++i$) {
         i = i$;
-        base = this.join(base, ds[i], joinCol);
+        base = this.join({
+          d1: base,
+          d2: ds[i],
+          joinCols: joinCols
+        });
       }
       return base;
     },
-    unpivot: function(data, cols, name, order){
-      var sep, hs, vals, tables, ret;
-      cols == null && (cols = []);
-      name == null && (name = "item");
-      order == null && (order = 0);
+    unpivot: function(opt){
+      var data, cols, name, order, sep, hs, vals, tables, ret;
+      opt == null && (opt = {});
+      data = opt.data, cols = opt.cols, name = opt.name, order = opt.order;
+      if (!name) {
+        name = 'item';
+      }
+      if (!(order != null)) {
+        order = 0;
+      }
       sep = this._sep;
       data = this.asDb(data);
       hs = data.head.filter(function(it){
@@ -247,9 +257,9 @@
       return ret;
     },
     group: function(opt){
-      var data, col, aggregator, groupFunc, hs, keys, hash, newkeys, res$, k, ret;
+      var data, cols, aggregator, groupFunc, hs, keys, hash, newkeys, res$, k, ret;
       opt == null && (opt = {});
-      data = opt.data, col = opt.col, aggregator = opt.aggregator, groupFunc = opt.groupFunc;
+      data = opt.data, cols = opt.cols, aggregator = opt.aggregator, groupFunc = opt.groupFunc;
       if (!groupFunc) {
         groupFunc = function(it){
           return it;
@@ -258,15 +268,15 @@
       if (!aggregator) {
         aggregator = {};
       }
-      col = Array.isArray(col)
-        ? col
-        : [col];
+      cols = Array.isArray(cols)
+        ? cols
+        : [cols];
       data = this.asDb(data);
       hs = data.head.filter(function(it){
-        return !in$(it, col) && aggregator[it] !== null;
+        return !in$(it, cols) && aggregator[it] !== null;
       });
       keys = Array.from(new Set(data.body.map(function(b){
-        return JSON.stringify(Object.fromEntries(col.map(function(it){
+        return JSON.stringify(Object.fromEntries(cols.map(function(it){
           return [it, b[it]];
         })));
       })));
@@ -299,7 +309,7 @@
         list = list.map(function(k){
           k = JSON.parse(k);
           return data.body.filter(function(b){
-            return col.filter(function(c){
+            return cols.filter(function(c){
               return b[c] !== k[c];
             }).length === 0;
           });
@@ -316,13 +326,13 @@
             : ls.length;
           return [h, ret];
         }));
-        col.map(function(c){
+        cols.map(function(c){
           return ret[c] = nk[c];
         });
         return ret;
       });
       return {
-        head: col.concat(hs),
+        head: cols.concat(hs),
         body: ret,
         name: data.name
       };
@@ -348,6 +358,47 @@
       first: function(it){
         return it[0] || '';
       }
+    },
+    shrink: function(arg$){
+      var data, cols;
+      data = arg$.data, cols = arg$.cols;
+      data = this.asDb(data);
+      data.head = data.head.filter(function(it){
+        return in$(it, cols);
+      });
+      data.body = data.body.map(function(b){
+        return Object.fromEntries(data.head.map(function(h){
+          return [h, b[h]];
+        }));
+      });
+      ['meta', 'unit', 'mag'].filter(function(it){
+        return data[it];
+      }).map(function(n){
+        return data[n] = Object.fromEntries(data.head.map(function(h){
+          return [h, data[n][h]];
+        }));
+      });
+      return data;
+    },
+    rename: function(arg$){
+      var data, map;
+      data = arg$.data, map = arg$.map;
+      data = this.asDb(data);
+      data.body = data.body.map(function(b){
+        return Object.fromEntries(data.head.map(function(h){
+          var that;
+          return [(that = map[h]) ? that : h, b[h]];
+        }));
+      });
+      data.head = data.head.map(function(h){
+        var that;
+        if (that = map[h]) {
+          return that;
+        } else {
+          return h;
+        }
+      });
+      return data;
     }
   };
   if (typeof module != 'undefined' && module !== null) {

@@ -36,7 +36,8 @@ datum =
       body ++= ds[i].body.map((d) -> Object.fromEntries(head.map (h) -> [h, d[h]]))
     return {name: ds.0.name, head, body}
 
-  join: (d1, d2, jc) ->
+  join: ({d1, d2, join-cols}) ->
+    jc = join-cols
     sep = @_sep
     [d1, d2] = [d1, d2].map (d) -> datum.as-db d
     [h1, h2] = [d1.head, d2.head]
@@ -71,11 +72,7 @@ datum =
       body: body
     }
 
-  unjoin: (data, cols) ->
-    data = @as-db data
-    head = ([] ++ data.head)
-
-  split: (data, col) ->
+  split: ({data, col}) ->
     data = @as-db data
     head = ([] ++ data.head)
     if !(~(idx = head.indexOf col)) => return data
@@ -87,14 +84,17 @@ datum =
     return ret
 
   pivot: (opt = {}) ->
-    {data, col, join-col} = opt
-    ds = @split data, col
+    {data, col, join-cols} = opt
+    ds = @split {data, col}
     base = ds.splice 0, 1 .0
     for i from 0 til ds.length =>
-      base = @join base, ds[i], join-col
+      base = @join {d1: base, d2: ds[i], join-cols}
     return base
 
-  unpivot: (data, cols = [], name = "item", order = 0) ->
+  unpivot: (opt = {}) ->
+    {data, cols, name, order} = opt
+    if !name => name = \item
+    if !(order?) => order = 0
     sep = @_sep
     data = @as-db data
     hs = data.head
@@ -121,13 +121,13 @@ datum =
     return ret
 
   group: (opt = {}) ->
-    {data,col,aggregator,group-func} = opt
+    {data,cols,aggregator,group-func} = opt
     if !group-func => group-func = (->it)
     if !aggregator => aggregator = {}
-    col = if Array.isArray(col) => col else [col]
+    cols = if Array.isArray(cols) => cols else [cols]
     data = @as-db data
-    hs = data.head.filter -> !(it in col) and (aggregator[it] != null)
-    keys = Array.from(new Set(data.body.map (b) -> JSON.stringify(Object.fromEntries(col.map -> [it, b[it]]))))
+    hs = data.head.filter -> !(it in cols) and (aggregator[it] != null)
+    keys = Array.from(new Set(data.body.map (b) -> JSON.stringify(Object.fromEntries(cols.map -> [it, b[it]]))))
     hash = {}
     keys.map (raw) ->
       rkey = JSON.parse(raw)
@@ -143,7 +143,7 @@ datum =
       list = list
         .map (k) ->
           k = JSON.parse(k)
-          data.body.filter (b) -> col.filter((c) -> b[c] != k[c]).length == 0
+          data.body.filter (b) -> cols.filter((c) -> b[c] != k[c]).length == 0
         .reduce(((a,b) -> a ++ b), [])
       ret = Object.fromEntries(
         hs.map (h) ->
@@ -151,15 +151,32 @@ datum =
           ret = if aggregator[h] => aggregator[h] ls else ls.length
           [h,ret]
       )
-      col.map (c) -> ret[c] = nk[c]
+      cols.map (c) -> ret[c] = nk[c]
       ret
-    return {head: (col ++ hs), body: ret, name: data.name}
+    return {head: (cols ++ hs), body: ret, name: data.name}
 
   agg:
     average: -> it.reduce(((a,b) -> a + (if isNaN(+b) => 0 else +b)),0) / (it.length or 1)
     sum: -> it.reduce(((a,b) -> a + (if isNaN(+b) => 0 else +b)),0)
     count: -> it.length
     first: -> it.0 or ''
+
+  shrink: ({data, cols}) ->
+    data = @as-db data
+    data.head = data.head.filter(-> it in cols)
+    data.body = data.body.map (b) -> Object.fromEntries(data.head.map (h) -> [h, b[h]])
+    <[meta unit mag]>.filter(->data[it]).map (n) ->
+      data[n] = Object.fromEntries(data.head.map (h) -> [h, data[n][h]])
+    return data
+
+  rename: ({data, map}) ->
+    data = @as-db data
+    data.body = data.body.map (b) ->
+      Object.fromEntries data.head.map (h) -> [(if map[h] => that else h), b[h]]
+    data.head = data.head.map (h) -> if map[h] => that else h
+    return data
+
+
 
 if module? => module.exports = datum
 else if window? => window.datum = datum

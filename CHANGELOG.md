@@ -1,5 +1,11 @@
 # Change Logs
 
+## v0.0.3
+
+ - use deconstructing assignment in API for better argument semantics.
+ - add `shrink` and `rename` api.
+
+ 
 ## v0.0.2
 
  - use option object as arguments

@@ -15,7 +15,11 @@ s = new sheet({
     row: 1
   }
 });
-ds2 = datum.pivot(ds, "category", ['year', 'attribute']);
+ds2 = datum.pivot({
+  data: ds,
+  col: "category",
+  joinCols: ['year', 'attribute']
+});
 console.log(ds2);
 ret = datum.type.get(ds);
 console.log(ret);
