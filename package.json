@@ -21,11 +21,11 @@
   },
   "devDependencies": {
     "@loadingio/ldquery": "^2.0.0",
-    "@plotdb/sheet": "^0.1.2",
+    "@plotdb/sheet": "^0.1.4",
     "bootstrap": "^4.5.2",
     "bootstrap.ldui": "github:loadingio/bootstrap.ldui",
     "fedep": "^0.0.12",
-    "ldview": "^0.1.1",
+    "ldview": "^0.2.0",
     "livescript": "^1.6.0",
     "template": "github:zbryikt/template#v2.3.13",
     "uglify-js": "=3.2.0",
