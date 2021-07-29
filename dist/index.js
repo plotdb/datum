@@ -87,10 +87,128 @@
         }));
       }
     },
+    _joinAll: function(opt){
+      var sep, ds, joinCols, hs, bs, ns, ss, idx, i$, to$, i, j$, to1$, j, heads, k, rehead, hm, nhs, head, joinValues, body, list;
+      opt == null && (opt = {});
+      sep = this._sep;
+      ds = opt.ds, joinCols = opt.joinCols;
+      ds = ds.map(function(it){
+        return datum.asDb(it);
+      });
+      hs = ds.map(function(it){
+        return it.head;
+      });
+      bs = ds.map(function(it){
+        return it.body;
+      });
+      ns = ds.map(function(d, i){
+        return d.name || (i + 1) + "";
+      });
+      ss = ns.map(function(it){
+        return it.split(sep);
+      });
+      idx = -1;
+      for (i$ = 0, to$ = ss[0].length; i$ < to$; ++i$) {
+        i = i$;
+        for (j$ = 1, to1$ = ss.length; j$ < to1$; ++j$) {
+          j = j$;
+          if (ss[j][i] !== ss[0][i]) {
+            idx = i;
+            break;
+          }
+        }
+        if (idx >= 0) {
+          break;
+        }
+      }
+      if (idx < 0) {
+        ns = ds.map(function(d, i){
+          return (i + 1) + "";
+        });
+      } else {
+        ns = ss.map(function(it){
+          return it.slice(idx).join(sep);
+        });
+      }
+      heads = {};
+      hs.map(function(head){
+        return head.map(function(h){
+          return heads[h] = (heads[h] || 0) + 1;
+        });
+      });
+      if (!joinCols) {
+        joinCols = (function(){
+          var results$ = [];
+          for (k in hs) {
+            results$.push(k);
+          }
+          return results$;
+        }()).filter(function(it){
+          return hs[it] === hs.length;
+        });
+      }
+      rehead = function(n, h){
+        if (opt.simpleHead) {
+          return n;
+        }
+        if (heads[h] > 1) {
+          return n + "" + sep + h;
+        }
+        return h;
+      };
+      hm = hs.map(function(oh, i){
+        var map;
+        return map = Object.fromEntries(oh.map(function(h){
+          return [h, !in$(h, joinCols) ? rehead(ns[i], h) : h];
+        }));
+      });
+      nhs = hs.map(function(oh, i){
+        var nh;
+        return nh = oh.filter(function(h){
+          return !in$(h, joinCols);
+        }).map(function(h){
+          return rehead(ns[i], h);
+        });
+      });
+      head = ([joinCols].concat(nhs)).reduce(function(a, b){
+        return a.concat(b);
+      }, []);
+      joinValues = {};
+      bs.map(function(body, i){
+        return body.map(function(b){
+          var ret, index, k, v;
+          ret = {};
+          index = JSON.stringify(Object.fromEntries(joinCols.map(function(h){
+            return [h, b[h]];
+          })));
+          for (k in b) {
+            v = b[k];
+            ret[hm[i][k]] = v;
+          }
+          return (joinValues[index] || (joinValues[index] = [])).push(ret);
+        });
+      });
+      body = [];
+      for (k in joinValues) {
+        list = joinValues[k];
+        body.push(list.reduce(fn$, {}));
+      }
+      return {
+        name: ds[0].name || 'unnamed',
+        head: head,
+        body: body
+      };
+      function fn$(a, b){
+        return import$(a, b);
+      }
+    },
     join: function(opt){
       var d1, d2, joinCols, rehead, jc, sep, ref$, h1, h2, b1, b2, n1, n2, s1, s2, i$, to$, i, head, ret, body;
       opt == null && (opt = {});
       d1 = opt.d1, d2 = opt.d2, joinCols = opt.joinCols;
+      if (opt.ds) {
+        return this._joinAll(opt);
+      }
       rehead = opt.simpleHead
         ? function(a, b){
           return a;
@@ -197,7 +315,7 @@
       return ret;
     },
     pivot: function(opt){
-      var data, col, joinCols, simpleHead, ds, base, i$, to$, i;
+      var data, col, joinCols, simpleHead, ds, this$ = this;
       opt == null && (opt = {});
       data = opt.data, col = opt.col, joinCols = opt.joinCols, simpleHead = opt.simpleHead;
       if (!(simpleHead != null)) {
@@ -207,17 +325,19 @@
         data: data,
         col: col
       });
-      base = ds.splice(0, 1)[0];
-      for (i$ = 0, to$ = ds.length; i$ < to$; ++i$) {
-        i = i$;
-        base = this.join({
-          d1: base,
-          d2: ds[i],
-          joinCols: joinCols,
-          simpleHead: simpleHead
+      ds = ds.map(function(d){
+        return this$.shrink({
+          data: d,
+          cols: d.head.filter(function(it){
+            return it !== col;
+          })
         });
-      }
-      return base;
+      });
+      return this.join({
+        ds: ds,
+        joinCols: joinCols,
+        simpleHead: simpleHead
+      });
     },
     unpivot: function(opt){
       var data, cols, name, order, sep, hs, vals, tables, ret;
@@ -719,5 +839,10 @@
     var i = -1, l = xs.length >>> 0;
     while (++i < l) if (x === xs[i]) return true;
     return false;
+  }
+  function import$(obj, src){
+    var own = {}.hasOwnProperty;
+    for (var key in src) if (own.call(src, key)) obj[key] = src[key];
+    return obj;
   }
 }).call(this);

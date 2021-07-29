@@ -1,5 +1,11 @@
 # Change Logs
 
+## v0.0.5
+
+ - support `ds` in `join` API for `pivot` API to use.
+ - fix `pivot` by rewriting multiple dataset join with `_join-all` function
+
+
 ## v0.0.4
 
  - add `simpleHead` option in `join` and `pivot`.

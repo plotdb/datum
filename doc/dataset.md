@@ -67,10 +67,12 @@ convert between sheet and db view:
 ### Sheet Manipulation
 
  - `concat(datasets)` - concat datasets in given order.
- - `join({d1, d2, joinCols})` - join 2 datasets based on the joinCols provided.
-   - `d1`: dataset to be joined.
-   - `d2`: dataset to join.
+ - `join({ds, d1, d2, joinCols, simpleHead})` - join datasets based on configurations.
+   - `ds`: array of datasets to join. when `ds` provided, `d1` and `d2` are ignored.
+   - `d1`: dataset to be joined. exclusive with `ds`
+   - `d2`: dataset to join. exclusive with `ds`.
    - `joinCols`: array of name of column used to join.
+   - `simpleHead`: true to not keep original column name when resolving collision. default false.
  - `unjoin({data, cols])` - unjoin ( TODO )
  - `split({data, col})` - split dataset by col value.
  - `pivot({data, col, joinCols, simpleHead})` - pivot based on `col` column ( split based on `col`, then join based on `joinCols` )

@@ -36,8 +36,82 @@ datum =
       body ++= ds[i].body.map((d) -> Object.fromEntries(head.map (h) -> [h, d[h]]))
     return {name: ds.0.name, head, body}
 
+  _join-all: (opt = {}) ->
+    sep = @_sep
+    {ds, join-cols} = opt
+    ds = ds.map -> datum.as-db it
+    hs = ds.map -> it.head
+    bs = ds.map -> it.body
+
+    # we have multiple tables. we want to join them but some columns may have the same name.
+    # so we prefix them with table names.
+    # yet we are probably joining tables from the same table due to pivoting.
+    # in this case table names share common part. we only need to prefix not-common part.
+    ns = ds.map (d,i) -> d.name or "#{i + 1}"
+    ss = ns.map -> it.split(sep)
+    idx = -1
+    for i from 0 til ss.0.length =>
+      for j from 1 til ss.length =>
+        if ss[j][i] != ss[0][i] =>
+          idx = i
+          break
+      if idx >= 0 => break
+    # not-common part table names
+    if idx < 0 => ns = ds.map (d,i) -> "#{i + 1}"
+    else ns = ss.map -> it.slice(idx).join(sep)
+
+    # count how many times a header name appear in all tables.
+    heads = {}
+    hs.map (head) -> head.map (h) -> heads[h] = (heads[h] or 0) + 1
+
+    # join-cols is the array of columns to join.
+    # if omitted, we use intersection of all headers for it.
+    if !join-cols => join-cols = [k for k of hs].filter -> hs[it] == hs.length
+
+    # rename head (h) based on table name (n) if necessary.
+    rehead = (n,h) ->
+      # simple-head is true - force to not rename.
+      if opt.simple-head => return n
+      # h appears multiple times. we need to prefix it to prevent collision.
+      if heads[h] > 1 => return "#n#sep#h"
+      # h only appears once. no need to prefix it.
+      return h
+
+    # head mapping.
+    hm = hs.map (oh,i) ->
+      map = Object.fromEntries(
+        oh.map (h) -> [ h, (if !(h in join-cols) => rehead(ns[i],h) else h) ]
+      )
+    # all headers after joining.
+    nhs = hs.map (oh,i) ->
+      nh = oh
+        .filter (h) -> !(h in join-cols) # common parts are already added above.
+        .map (h) -> rehead ns[i], h      # rename h if necessary.
+    head = ([join-cols] ++ nhs).reduce(((a,b) -> a ++ b),[])
+
+    # group rows by values in join-cols
+    join-values = {}
+    bs.map (body,i) -> 
+      body.map (b) ->
+        ret = {}
+        index = JSON.stringify(Object.fromEntries(join-cols.map (h) -> [h,b[h]]))
+        # rehead body based on head mapping `hm`
+        for k,v of b => ret[hm[i][k]] = v
+        join-values[][index].push ret
+    body = []
+    for k,list of join-values =>
+      body.push list.reduce(((a,b) -> a <<< b), {})
+
+    return {
+      name: ds.0.name or 'unnamed'
+      head: head
+      body: body
+    }
+
+
   join: (opt = {}) ->
     {d1, d2, join-cols} = opt
+    if opt.ds => return @_join-all opt
     rehead = if opt.simple-head => ((a,b) -> a) else ((a,b) -> "#a#sep#b")
     jc = join-cols
     sep = @_sep
@@ -89,10 +163,8 @@ datum =
     {data, col, join-cols, simple-head} = opt
     if !(simple-head?) => simple-head = false
     ds = @split {data, col}
-    base = ds.splice 0, 1 .0
-    for i from 0 til ds.length =>
-      base = @join {d1: base, d2: ds[i], join-cols, simple-head}
-    return base
+    ds = ds.map (d) ~> @shrink {data: d, cols: d.head.filter -> it != col}
+    return @join {ds, join-cols, simple-head}
 
   unpivot: (opt = {}) ->
     {data, cols, name, order} = opt
