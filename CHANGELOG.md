@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.0.4
+
+ - add `simpleHead` option in `join` and `pivot`.
+
+
 ## v0.0.3
 
  - use deconstructing assignment in API for better argument semantics.

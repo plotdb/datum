@@ -73,10 +73,11 @@ convert between sheet and db view:
    - `joinCols`: array of name of column used to join.
  - `unjoin({data, cols])` - unjoin ( TODO )
  - `split({data, col})` - split dataset by col value.
- - `pivot({data, col, joinCols})` - pivot based on `col` column ( split based on `col`, then join based on `joinCols` )
+ - `pivot({data, col, joinCols, simpleHead})` - pivot based on `col` column ( split based on `col`, then join based on `joinCols` )
     - `data`: dataset to pivot
     - `col`: name of the column to pivot. 
     - `joinCols`: array of name of columns to join after table spliting based on `col`.
+    - `simpleHead`: true to remove original column head name. default false.
  - `unpivot({data, cols, name, order})` - unpivot
    - `data`: dataset to unpivot
    - `cols`: columns to stay ( not involved in unpivot )

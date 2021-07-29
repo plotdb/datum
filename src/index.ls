@@ -36,7 +36,9 @@ datum =
       body ++= ds[i].body.map((d) -> Object.fromEntries(head.map (h) -> [h, d[h]]))
     return {name: ds.0.name, head, body}
 
-  join: ({d1, d2, join-cols}) ->
+  join: (opt = {}) ->
+    {d1, d2, join-cols} = opt
+    rehead = if opt.simple-head => ((a,b) -> a) else ((a,b) -> "#a#sep#b")
     jc = join-cols
     sep = @_sep
     [d1, d2] = [d1, d2].map (d) -> datum.as-db d
@@ -51,8 +53,8 @@ datum =
     if !jc => jc = h1.filter (h) -> (~h2.indexOf(h))
     head = (
       jc ++ 
-      h1.filter((h) -> !(h in jc)).map((h)-> if h in h2 => "#n1#sep#h" else h) ++
-      h2.filter((h) -> !(h in jc)).map((h)-> if h in h1 => "#n2#sep#h" else h)
+      h1.filter((h) -> !(h in jc)).map((h)-> if h in h2 => rehead(n1,h) else h) ++
+      h2.filter((h) -> !(h in jc)).map((h)-> if h in h1 => rehead(n2,h) else h)
     )
     ret = b1.map (r1) ->
       matched = b2.filter (r2) -> !(jc.filter(-> r2[it] != r1[it]).length)
@@ -60,8 +62,8 @@ datum =
       ret = matched.map (r2) ->
         Object.fromEntries(
           jc.map((h) -> [h, r1[h]]) ++
-          h1.filter((h) -> !(h in jc)).map((h)-> [(if h in h2 => "#n1#sep#h" else h), r1[h]]) ++
-          h2.filter((h) -> !(h in jc)).map((h)-> [(if h in h1 => "#n2#sep#h" else h), r2[h]])
+          h1.filter((h) -> !(h in jc)).map((h)-> [(if h in h2 => rehead(n1,h) else h), r1[h]]) ++
+          h2.filter((h) -> !(h in jc)).map((h)-> [(if h in h1 => rehead(n2,h) else h), r2[h]])
         )
       return ret
     body = ret.reduce(((a,b) -> a ++ b),[])
@@ -84,11 +86,12 @@ datum =
     return ret
 
   pivot: (opt = {}) ->
-    {data, col, join-cols} = opt
+    {data, col, join-cols, simple-head} = opt
+    if !(simple-head?) => simple-head = false
     ds = @split {data, col}
     base = ds.splice 0, 1 .0
     for i from 0 til ds.length =>
-      base = @join {d1: base, d2: ds[i], join-cols}
+      base = @join {d1: base, d2: ds[i], join-cols, simple-head}
     return base
 
   unpivot: (opt = {}) ->

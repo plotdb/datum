@@ -87,9 +87,17 @@
         }));
       }
     },
-    join: function(arg$){
-      var d1, d2, joinCols, jc, sep, ref$, h1, h2, b1, b2, n1, n2, s1, s2, i$, to$, i, head, ret, body;
-      d1 = arg$.d1, d2 = arg$.d2, joinCols = arg$.joinCols;
+    join: function(opt){
+      var d1, d2, joinCols, rehead, jc, sep, ref$, h1, h2, b1, b2, n1, n2, s1, s2, i$, to$, i, head, ret, body;
+      opt == null && (opt = {});
+      d1 = opt.d1, d2 = opt.d2, joinCols = opt.joinCols;
+      rehead = opt.simpleHead
+        ? function(a, b){
+          return a;
+        }
+        : function(a, b){
+          return a + "" + sep + b;
+        };
       jc = joinCols;
       sep = this._sep;
       ref$ = [d1, d2].map(function(d){
@@ -116,7 +124,7 @@
         return !in$(h, jc);
       }).map(function(h){
         if (in$(h, h2)) {
-          return n1 + "" + sep + h;
+          return rehead(n1, h);
         } else {
           return h;
         }
@@ -124,7 +132,7 @@
         return !in$(h, jc);
       }).map(function(h){
         if (in$(h, h1)) {
-          return n2 + "" + sep + h;
+          return rehead(n2, h);
         } else {
           return h;
         }
@@ -145,11 +153,11 @@
           }).concat(h1.filter(function(h){
             return !in$(h, jc);
           }).map(function(h){
-            return [in$(h, h2) ? n1 + "" + sep + h : h, r1[h]];
+            return [in$(h, h2) ? rehead(n1, h) : h, r1[h]];
           }), h2.filter(function(h){
             return !in$(h, jc);
           }).map(function(h){
-            return [in$(h, h1) ? n2 + "" + sep + h : h, r2[h]];
+            return [in$(h, h1) ? rehead(n2, h) : h, r2[h]];
           })));
         });
         return ret;
@@ -189,9 +197,12 @@
       return ret;
     },
     pivot: function(opt){
-      var data, col, joinCols, ds, base, i$, to$, i;
+      var data, col, joinCols, simpleHead, ds, base, i$, to$, i;
       opt == null && (opt = {});
-      data = opt.data, col = opt.col, joinCols = opt.joinCols;
+      data = opt.data, col = opt.col, joinCols = opt.joinCols, simpleHead = opt.simpleHead;
+      if (!(simpleHead != null)) {
+        simpleHead = false;
+      }
       ds = this.split({
         data: data,
         col: col
@@ -202,7 +213,8 @@
         base = this.join({
           d1: base,
           d2: ds[i],
-          joinCols: joinCols
+          joinCols: joinCols,
+          simpleHead: simpleHead
         });
       }
       return base;
