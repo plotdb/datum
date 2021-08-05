@@ -91,7 +91,8 @@ convert between sheet and db view:
    - `data`: dataset to group
    - `cols`: index columns. rows with the same value in these columns with be merged into one row.
    - `aggregator`: hash of column name to a aggregating function. default to count of rows to merge.
-   - `group-func`: hash of column name to a mapping function of values in the column to group. default `(->it)`
+   - `group-func`: either a function, or a hash of column name to a mapping function of values in the column to group
+     - default `function(it) { return it; }`
      - useful to group different values into one. e.g., this function groups values by tens digit:
        `-> Math.floor(it / 10)`
  - `rename({data, map})`: rename columns.
