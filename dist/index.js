@@ -392,11 +392,6 @@
       var data, cols, aggregator, groupFunc, hs, keys, hash, newkeys, res$, k, ret;
       opt == null && (opt = {});
       data = opt.data, cols = opt.cols, aggregator = opt.aggregator, groupFunc = opt.groupFunc;
-      if (!groupFunc) {
-        groupFunc = function(it){
-          return it;
-        };
-      }
       if (!aggregator) {
         aggregator = {};
       }
@@ -414,20 +409,27 @@
       })));
       hash = {};
       keys.map(function(raw){
-        var rkey, gkey, k, v;
+        var rkey, gkey, _gf, k, v;
         rkey = JSON.parse(raw);
-        gkey = {};
-        for (k in rkey) {
-          v = rkey[k];
-          gkey[k] = typeof groupFunc === 'function'
-            ? groupFunc(v)
-            : groupFunc[k](v);
+        if (typeof groupFunc === 'function') {
+          gkey = groupFunc(rkey);
+        } else {
+          _gf = groupFunc || {};
+          gkey = {};
+          for (k in rkey) {
+            v = rkey[k];
+            gkey[k] = typeof _gf[k] === 'function' ? _gf[k](v) : v;
+          }
         }
-        gkey = JSON.stringify(gkey);
-        if (!hash[gkey]) {
-          hash[gkey] = new Set();
-        }
-        return hash[gkey].add(raw);
+        return (Array.isArray(gkey)
+          ? gkey
+          : [gkey]).map(function(k){
+          k = JSON.stringify(k);
+          if (!hash[k]) {
+            hash[k] = new Set();
+          }
+          return hash[k].add(raw);
+        });
       });
       res$ = [];
       for (k in hash) {
@@ -688,6 +690,9 @@
             }
             dim.bind = dim.v.multiple ? [dt] : dt;
             dt.used = true;
+            break;
+          }
+          if (dim.bind) {
             break;
           }
         }

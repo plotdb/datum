@@ -1,4 +1,4 @@
-datum = 
+datum =
   _sep: \-
   # there are two types of data:
   #  - `db`: {head: [...], body: [{ ... }, ... ]} or [{ ... }, ... ]
@@ -91,7 +91,7 @@ datum =
 
     # group rows by values in join-cols
     join-values = {}
-    bs.map (body,i) -> 
+    bs.map (body,i) ->
       body.map (b) ->
         ret = {}
         index = JSON.stringify(Object.fromEntries(join-cols.map (h) -> [h,b[h]]))
@@ -126,7 +126,7 @@ datum =
 
     if !jc => jc = h1.filter (h) -> (~h2.indexOf(h))
     head = (
-      jc ++ 
+      jc ++
       h1.filter((h) -> !(h in jc)).map((h)-> if h in h2 => rehead(n1,h) else h) ++
       h2.filter((h) -> !(h in jc)).map((h)-> if h in h1 => rehead(n2,h) else h)
     )
@@ -197,7 +197,6 @@ datum =
 
   group: (opt = {}) ->
     {data,cols,aggregator,group-func} = opt
-    if !group-func => group-func = (->it)
     if !aggregator => aggregator = {}
     cols = if Array.isArray(cols) => cols else [cols]
     data = @as-db data
@@ -206,11 +205,15 @@ datum =
     hash = {}
     keys.map (raw) ->
       rkey = JSON.parse(raw)
-      gkey = {}
-      for k,v of rkey => gkey[k] = if typeof(group-func) == \function => group-func(v) else group-func[k](v)
-      gkey = JSON.stringify(gkey)
-      if !hash[gkey] => hash[gkey] = new Set!
-      hash[gkey].add raw
+      if typeof(group-func) == \function => gkey = group-func(rkey)
+      else
+        _gf = group-func or {}
+        gkey = {}
+        for k,v of rkey => gkey[k] = if typeof(_gf[k]) == \function => _gf[k](v) else v
+      (if Array.isArray(gkey) => gkey else [gkey]).map (k) ->
+        k = JSON.stringify(k)
+        if !hash[k] => hash[k] = new Set!
+        hash[k].add raw
     newkeys = [k for k of hash]
     ret = newkeys.map (nk) ->
       list = Array.from(hash[nk])
