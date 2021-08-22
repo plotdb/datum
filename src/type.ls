@@ -51,9 +51,10 @@ datum.type =
   bind: (dataset = [], dimension = {}) ->
     datatypes = datum.type.get dataset
     dims = [{k,v} for k,v of dimension].filter -> !it.v.passive
-    dims.sort (a,b) ->
+    dims.sort (a,b) -> # which dimension bind first?
       ret = (a.v.priority or 100) - (b.v.priority or 100)
       if ret != 0 => return ret
+      # tie in priority - then use type to decide. C > O > N > R
       [ma,mb] = [(a.v.type or \R), (b.v.type or \R)].map (t) ->
         Math.min.apply Math, [0 til t.length].map (i) -> "CONR".indexOf(t[i])
       return ma - mb
@@ -72,6 +73,9 @@ datum.type =
           dim.bind = if dim.v.multiple => [dt] else dt
           dt.used = true
           break
+        # once we got the best match, we don't have to try other datatype
+        # otherwise priority will get inversed.
+        if dim.bind => break
     for dim in dims =>
       if !dim.v.multiple => continue
       ts = dim.v.type or \RNOC
