@@ -48,8 +48,8 @@ datum.type =
         type: list.0.0
     return type
 
-  bind: (dataset = [], dimension = {}) ->
-    datatypes = datum.type.get dataset
+  bind: (dataset = [], dimension = {}, datatypes) ->
+    if !datatypes => datatypes = datum.type.get dataset
     dims = [{k,v} for k,v of dimension].filter -> !it.v.passive
     dims.sort (a,b) -> # which dimension bind first?
       ret = (a.v.priority or 100) - (b.v.priority or 100)

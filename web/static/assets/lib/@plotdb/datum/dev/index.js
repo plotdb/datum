@@ -637,11 +637,13 @@
         return b[1] - a[1];
       }
     },
-    bind: function(dataset, dimension){
-      var datatypes, dims, k, v, i$, len$, dim, ts, j$, to$, i, t, k$, to1$, dt, ret;
+    bind: function(dataset, dimension, datatypes){
+      var dims, k, v, i$, len$, dim, ts, j$, to$, i, t, k$, to1$, dt, ret;
       dataset == null && (dataset = []);
       dimension == null && (dimension = {});
-      datatypes = datum.type.get(dataset);
+      if (!datatypes) {
+        datatypes = datum.type.get(dataset);
+      }
       dims = (function(){
         var ref$, results$ = [];
         for (k in ref$ = dimension) {
