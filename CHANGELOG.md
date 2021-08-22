@@ -1,5 +1,12 @@
 # Change Logs
 
+## v0.0.6 (upcoming)
+
+ - provide default value of datatypes for bind
+ - change group-func logic
+ - fix bug: dimension binding priority inversed
+
+
 ## v0.0.5
 
  - support `ds` in `join` API for `pivot` API to use.
