@@ -1,6 +1,6 @@
 # Change Logs
 
-## v0.0.6 (upcoming)
+## v0.0.6
 
  - provide default value of datatypes for bind
  - change group-func logic
