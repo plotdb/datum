@@ -104,7 +104,8 @@
       metas = ds.map(function(it){
         return {
           unit: it.unit,
-          mag: it.mag
+          mag: it.mag,
+          type: it.type
         };
       });
       ns = ds.map(function(d, i){
@@ -201,10 +202,11 @@
       }
       base = {
         mag: {},
-        unit: {}
+        unit: {},
+        type: {}
       };
       metas.map(function(obj, i){
-        return ['mag', 'unit'].map(function(n){
+        return ['mag', 'unit', 'type'].map(function(n){
           var k, ref$, v, results$ = [];
           if (!obj[n]) {
             return;
@@ -275,7 +277,7 @@
         })
       ];
       base = {};
-      ['mag', 'unit'].map(function(n){
+      ['mag', 'unit', 'type'].map(function(n){
         base[n] = {};
         if (d1[n]) {
           head[0].map(function(h){
@@ -335,7 +337,7 @@
       }
       head.splice(idx, 1);
       base = {};
-      ['mag', 'unit'].map(function(n){
+      ['mag', 'unit', 'type'].map(function(n){
         var ref$, ref1$;
         base[n] = import$({}, data[n]);
         return ref1$ = (ref$ = base[n])[col], delete ref$[col], ref1$;
@@ -547,7 +549,7 @@
           return [h, b[h]];
         }));
       });
-      ['unit', 'mag'].filter(function(it){
+      ['unit', 'mag', 'type'].filter(function(it){
         return data[it];
       }).map(function(n){
         return data[n] = Object.fromEntries(data.head.map(function(h){
@@ -566,7 +568,7 @@
           return [(that = map[h]) ? that : h, b[h]];
         }));
       });
-      ['unit', 'mag'].filter(function(it){
+      ['unit', 'mag', 'type'].filter(function(it){
         return data[it];
       }).map(function(n){
         return data[n] = Object.fromEntries(data.head.map(function(h){
@@ -796,9 +798,12 @@
         }
         return ret;
       }
-      function fn2$(it){
+      function fn2$(b){
         var ref$;
-        return ref$ = it.used, delete it.used, ref$;
+        if (dataset.unit) {
+          b.unit = dataset.unit[b.key] || '';
+        }
+        return ref$ = b.used, delete b.used, ref$;
       }
     }
   };

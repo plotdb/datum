@@ -1,5 +1,11 @@
 # Change Logs
 
+## v0.0.8
+
+ - add `type` field in dataset
+ - support unit propagation in autobind.
+
+
 ## v0.0.7
 
  - support data operations for `unit` and `mag` fields.

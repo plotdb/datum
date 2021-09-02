@@ -42,7 +42,7 @@ datum =
     ds = ds.map -> datum.as-db it
     hs = ds.map -> it.head
     bs = ds.map -> it.body
-    metas = ds.map -> it{unit, mag}
+    metas = ds.map -> it{unit, mag, type}
 
     # we have multiple tables. we want to join them but some columns may have the same name.
     # so we prefix them with table names.
@@ -103,9 +103,9 @@ datum =
     for k,list of join-values =>
       body.push list.reduce(((a,b) -> a <<< b), {})
 
-    base = {mag: {}, unit: {}}
+    base = {mag: {}, unit: {}, type: {}}
     metas.map (obj, i) ->
-      <[mag unit]>.map (n) ->
+      <[mag unit type]>.map (n) ->
         if !obj[n] => return
         for k,v of obj[n] => base[n][hm[i][k]] = v
 
@@ -139,7 +139,7 @@ datum =
     ]
 
     base = {}
-    <[mag unit]>.map (n) ->
+    <[mag unit type]>.map (n) ->
       base[n] = {}
       if d1[n] => head.0.map (h) -> base[n][h.1] = d1[n][h.0]
       if d2[n] => head.1.map (h) -> base[n][h.1] = d2[n][h.0]
@@ -170,7 +170,7 @@ datum =
     if !(~(idx = head.indexOf col)) => return data
     head.splice idx, 1
     base = {}
-    <[mag unit]>.map (n) ->
+    <[mag unit type]>.map (n) ->
       base[n] = {} <<< data[n]
       delete base[n][col]
     hash = {}
@@ -191,7 +191,7 @@ datum =
     ds = ds.map (d) ~> @shrink {data: d, cols: d.head.filter -> it != col}
     return @join {ds, join-cols, simple-head}
 
-  # TODO unpivot mag and unit too
+  # TODO unpivot mag, unit and type too
   unpivot: (opt = {}) ->
     {data, cols, name, order} = opt
     if !name => name = \item
@@ -269,7 +269,7 @@ datum =
     data = @as-db data
     data.head = data.head.filter(-> it in cols)
     data.body = data.body.map (b) -> Object.fromEntries(data.head.map (h) -> [h, b[h]])
-    <[unit mag]>.filter(->data[it]).map (n) ->
+    <[unit mag type]>.filter(->data[it]).map (n) ->
       data[n] = Object.fromEntries(data.head.map (h) -> [h, data[n][h]])
     return data
 
@@ -277,7 +277,7 @@ datum =
     data = @as-db data
     data.body = data.body.map (b) ->
       Object.fromEntries data.head.map (h) -> [(if map[h] => that else h), b[h]]
-    <[unit mag]>.filter(-> data[it]).map (n) ->
+    <[unit mag type]>.filter(-> data[it]).map (n) ->
       data[n] = Object.fromEntries(data.head.map (h) -> [map[h] or h, data[n][h]])
     data.head = data.head.map (h) -> if map[h] => that else h
     return data

@@ -93,6 +93,9 @@ datum.type =
     ret = {}
     for dim in dims => if dim.bind =>
       ret[dim.k] = dim.bind
-      (if Array.isArray(dim.bind) => dim.bind else [dim.bind]).map -> delete it.used
+      (if Array.isArray(dim.bind) => dim.bind else [dim.bind])
+        .map (b) ->
+          if dataset.unit => b.unit = dataset.unit[b.key] or ''
+          delete b.used
     return ret
 

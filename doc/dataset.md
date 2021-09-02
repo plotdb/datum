@@ -29,6 +29,10 @@ With DB ( Database ) view, dataset are separated into following parts:
    - `meta`: meta information. user defined.
    - `unit`: an object, mapping head names to corresponding unit.
    - `mag`: an object, mapping head names to corresponding magnitude.
+   - `type`: datatype object, maaping head names to corresponding type object.
+     - `type`: primary type of specific column. possible types: R, O, N, C
+     - `types`: hash of probability ( 0 ~ 1 ) and type mapping.
+
 
 
 For example:
