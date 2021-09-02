@@ -88,7 +88,7 @@
       }
     },
     _joinAll: function(opt){
-      var sep, ds, joinCols, hs, bs, ns, ss, idx, i$, to$, i, j$, to1$, j, heads, k, rehead, hm, nhs, head, joinValues, body, list;
+      var sep, ds, joinCols, hs, bs, metas, ns, ss, idx, i$, to$, i, j$, to1$, j, heads, k, rehead, hm, nhs, head, joinValues, body, list, base;
       opt == null && (opt = {});
       sep = this._sep;
       ds = opt.ds, joinCols = opt.joinCols;
@@ -100,6 +100,12 @@
       });
       bs = ds.map(function(it){
         return it.body;
+      });
+      metas = ds.map(function(it){
+        return {
+          unit: it.unit,
+          mag: it.mag
+        };
       });
       ns = ds.map(function(d, i){
         return d.name || (i + 1) + "";
@@ -193,17 +199,34 @@
         list = joinValues[k];
         body.push(list.reduce(fn$, {}));
       }
-      return {
+      base = {
+        mag: {},
+        unit: {}
+      };
+      metas.map(function(obj, i){
+        return ['mag', 'unit'].map(function(n){
+          var k, ref$, v, results$ = [];
+          if (!obj[n]) {
+            return;
+          }
+          for (k in ref$ = obj[n]) {
+            v = ref$[k];
+            results$.push(base[n][hm[i][k]] = v);
+          }
+          return results$;
+        });
+      });
+      return import$({
         name: ds[0].name || 'unnamed',
         head: head,
         body: body
-      };
+      }, base);
       function fn$(a, b){
         return import$(a, b);
       }
     },
     join: function(opt){
-      var d1, d2, joinCols, rehead, jc, sep, ref$, h1, h2, b1, b2, n1, n2, s1, s2, i$, to$, i, head, ret, body;
+      var d1, d2, joinCols, rehead, jc, sep, ref$, h1, h2, b1, b2, n1, n2, s1, s2, i$, to$, i, head, base, ret, body;
       opt == null && (opt = {});
       d1 = opt.d1, d2 = opt.d2, joinCols = opt.joinCols;
       if (opt.ds) {
@@ -238,23 +261,36 @@
           return ~h2.indexOf(h);
         });
       }
-      head = jc.concat(h1.filter(function(h){
-        return !in$(h, jc);
-      }).map(function(h){
-        if (in$(h, h2)) {
-          return rehead(n1, h);
-        } else {
-          return h;
+      head = [
+        jc.map(function(it){
+          return [it, it];
+        }).concat(h1.filter(function(h){
+          return !in$(h, jc);
+        }).map(function(h){
+          return [h, in$(h, h2) ? rehead(n1, h) : h];
+        })), h2.filter(function(h){
+          return !in$(h, jc);
+        }).map(function(h){
+          return [h, in$(h, h1) ? rehead(n2, h) : h];
+        })
+      ];
+      base = {};
+      ['mag', 'unit'].map(function(n){
+        base[n] = {};
+        if (d1[n]) {
+          head[0].map(function(h){
+            return base[n][h[1]] = d1[n][h[0]];
+          });
         }
-      }), h2.filter(function(h){
-        return !in$(h, jc);
-      }).map(function(h){
-        if (in$(h, h1)) {
-          return rehead(n2, h);
-        } else {
-          return h;
+        if (d2[n]) {
+          return head[1].map(function(h){
+            return base[n][h[1]] = d2[n][h[0]];
+          });
         }
-      }));
+      });
+      head = (head[0].concat(head[1])).map(function(it){
+        return it[1];
+      });
       ret = b1.map(function(r1){
         var matched, ret;
         matched = b2.filter(function(r2){
@@ -283,14 +319,14 @@
       body = ret.reduce(function(a, b){
         return a.concat(b);
       }, []);
-      return {
+      return import$({
         name: d1.name || 'unnamed',
         head: head,
         body: body
-      };
+      }, base);
     },
     split: function(arg$){
-      var data, col, head, idx, hash, ret, k, v;
+      var data, col, head, idx, base, hash, ret, k, v;
       data = arg$.data, col = arg$.col;
       data = this.asDb(data);
       head = [].concat(data.head);
@@ -298,6 +334,12 @@
         return data;
       }
       head.splice(idx, 1);
+      base = {};
+      ['mag', 'unit'].map(function(n){
+        var ref$, ref1$;
+        base[n] = import$({}, data[n]);
+        return ref1$ = (ref$ = base[n])[col], delete ref$[col], ref1$;
+      });
       hash = {};
       data.body.filter(function(d){
         var key$;
@@ -306,11 +348,11 @@
       ret = [];
       for (k in hash) {
         v = hash[k];
-        ret.push({
+        ret.push(import$({
           name: (data.name || 'unnamed') + "" + this._sep + k,
           head: head,
           body: v
-        });
+        }, JSON.parse(JSON.stringify(base))));
       }
       return ret;
     },
@@ -505,7 +547,7 @@
           return [h, b[h]];
         }));
       });
-      ['meta', 'unit', 'mag'].filter(function(it){
+      ['unit', 'mag'].filter(function(it){
         return data[it];
       }).map(function(n){
         return data[n] = Object.fromEntries(data.head.map(function(h){
@@ -522,6 +564,13 @@
         return Object.fromEntries(data.head.map(function(h){
           var that;
           return [(that = map[h]) ? that : h, b[h]];
+        }));
+      });
+      ['unit', 'mag'].filter(function(it){
+        return data[it];
+      }).map(function(n){
+        return data[n] = Object.fromEntries(data.head.map(function(h){
+          return [map[h] || h, data[n][h]];
         }));
       });
       data.head = data.head.map(function(h){

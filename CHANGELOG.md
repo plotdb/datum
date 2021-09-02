@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.0.7
+
+ - support data operations for `unit` and `mag` fields.
+
+
 ## v0.0.6
 
  - provide default value of datatypes for bind
