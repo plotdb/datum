@@ -54,13 +54,13 @@ datum.type =
     dims.sort (a,b) -> # which dimension bind first?
       ret = (a.v.priority or 100) - (b.v.priority or 100)
       if ret != 0 => return ret
-      # tie in priority - then use type to decide. C > O > N > R
+      # tie in priority - then use type to decide. C > O > N > R > I
       [ma,mb] = [(a.v.type or \R), (b.v.type or \R)].map (t) ->
-        Math.min.apply Math, [0 til t.length].map (i) -> "CONR".indexOf(t[i])
+        Math.min.apply Math, [0 til t.length].map (i) -> "CONRI".indexOf(t[i])
       return ma - mb
     for dim in dims =>
       dim.bind = null
-      ts = dim.v.type or \RNOC
+      ts = dim.v.type or \RINOC
       for i from 0 til ts.length =>
         t = ts[i]
         datatypes.sort (a, b) ->
@@ -69,7 +69,7 @@ datum.type =
           return ret
         for i from 0 til datatypes.length =>
           dt = datatypes[i]
-          if dt.types[t] < 0.5 or dt.used or (t == \C and dt.types.R > 0.5) => continue
+          if !(dt.types[t]?) or dt.types[t] < 0.5 or dt.used or (t == \C and dt.types.R > 0.5) => continue
           dim.bind = if dim.v.multiple => [dt] else dt
           dt.used = true
           break

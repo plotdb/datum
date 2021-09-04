@@ -1,5 +1,11 @@
 # Change Logs
 
+## v0.0.9
+
+ - skip types without probability
+ - add type `I`
+
+
 ## v0.0.8
 
  - add `type` field in dataset

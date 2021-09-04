@@ -722,7 +722,7 @@
             }
             return results$;
           }()).map(function(i){
-            return "CONR".indexOf(t[i]);
+            return "CONRI".indexOf(t[i]);
           }));
         }), ma = ref$[0], mb = ref$[1];
         return ma - mb;
@@ -730,7 +730,7 @@
       for (i$ = 0, len$ = dims.length; i$ < len$; ++i$) {
         dim = dims[i$];
         dim.bind = null;
-        ts = dim.v.type || 'RNOC';
+        ts = dim.v.type || 'RINOC';
         for (j$ = 0, to$ = ts.length; j$ < to$; ++j$) {
           i = j$;
           t = ts[i];
@@ -738,7 +738,7 @@
           for (k$ = 0, to1$ = datatypes.length; k$ < to1$; ++k$) {
             i = k$;
             dt = datatypes[i];
-            if (dt.types[t] < 0.5 || dt.used || (t === 'C' && dt.types.R > 0.5)) {
+            if (!(dt.types[t] != null) || dt.types[t] < 0.5 || dt.used || (t === 'C' && dt.types.R > 0.5)) {
               continue;
             }
             dim.bind = dim.v.multiple ? [dt] : dt;
