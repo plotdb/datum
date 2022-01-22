@@ -1,5 +1,15 @@
 # Change Logs
 
+## v0.0.10
+
+ - further minimize generated js file with mangling and compression
+ - add `main` and `browser` field in `package.json`.
+ - upgrade modules
+ - patch test code to make it work with upgraded modules
+ - remove assets files from git
+ - release with compact directory structure
+
+
 ## v0.0.9
 
  - skip types without probability

@@ -3,7 +3,7 @@
   "name": "@plotdb/datum",
   "license": "MIT",
   "description": "data manipulation library",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "browser": "dist/index.min.js",
   "main": "dist/index.min.js",
   "files": [
