@@ -22,22 +22,22 @@
     "start": "npx server -r web -o true"
   },
   "devDependencies": {
-    "@loadingio/ldquery": "^2.0.0",
-    "@plotdb/sheet": "^0.1.4",
+    "@loadingio/ldquery": "^3.0.2",
+    "@plotdb/sheet": "^0.2.0",
     "bootstrap": "^4.5.2",
-    "bootstrap.ldui": "github:loadingio/bootstrap.ldui",
-    "fedep": "^0.0.12",
-    "ldview": "^0.2.0",
+    "@loadingio/bootstrap.ext": "^0.0.4",
+    "fedep": "^1.1.2",
+    "ldview": "^1.0.0",
     "livescript": "^1.6.0",
-    "template": "github:zbryikt/template#v2.3.13",
-    "uglify-js": "=3.2.0",
+    "@zbryikt/template": "^2.3.33",
+    "uglify-js": "^3.13.1",
     "uglifycss": "^0.0.29"
   },
   "frontendDependencies": {
     "root": "web/static/assets/lib",
     "modules": [
       "bootstrap",
-      "bootstrap.ldui",
+      "@loadingio/bootstrap.ext",
       "@loadingio/ldquery",
       "@plotdb/sheet",
       "ldview"
