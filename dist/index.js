@@ -763,10 +763,10 @@
           for (k$ = 0, to1$ = datatypes.length; k$ < to1$; ++k$) {
             i = k$;
             dt = datatypes[i];
-            if (dt.types[t] < 0.5 || dt.used || (t === 'C' && dt.types.R > 0.5)) {
+            if (!(dt.types[t] != null) || dt.types[t] < 0.5 || dt.used || (t === 'C' && dt.types.R > 0.5)) {
               continue;
             }
-            dim.bind.push(dt);
+            (dim.bind || (dim.bind = [])).push(dt);
             dt.used = true;
           }
         }
@@ -792,9 +792,9 @@
       }
       function fn1$(a, b){
         var ret;
-        ret = (b[t] || 0) - (a[t] || 0);
-        if (b[t] === a[t] && t === 'R') {
-          return (a.O || 0) - (b.O || 0);
+        ret = (b.types[t] || 0) - (a.types[t] || 0);
+        if (b.types[t] === a.types[t] && t === 'R') {
+          return (a.types.O || 0) - (b.types.O || 0);
         }
         return ret;
       }

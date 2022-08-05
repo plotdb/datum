@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.0.11 (upcoming)
+
+ - fix bug: `bind()` for multiple dimension check types in incorrect fields
+
+
 ## v0.0.10
 
  - further minimize generated js file with mangling and compression

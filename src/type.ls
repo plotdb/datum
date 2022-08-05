@@ -82,13 +82,13 @@ datum.type =
       for i from 0 til ts.length =>
         t = ts[i]
         datatypes.sort (a, b) ->
-          ret = (b[t] or 0) - (a[t] or 0)
-          if b[t] == a[t] and t == \R => return (a.O or 0) - (b.O or 0)
+          ret = (b.types[t] or 0) - (a.types[t] or 0)
+          if b.types[t] == a.types[t] and t == \R => return (a.types.O or 0) - (b.types.O or 0)
           return ret
         for i from 0 til datatypes.length =>
           dt = datatypes[i]
-          if dt.types[t] < 0.5 or dt.used or (t == \C and dt.types.R > 0.5) => continue
-          dim.bind.push dt
+          if !(dt.types[t]?) or dt.types[t] < 0.5 or dt.used or (t == \C and dt.types.R > 0.5) => continue
+          dim.[]bind.push dt
           dt.used = true
     ret = {}
     for dim in dims => if dim.bind =>
