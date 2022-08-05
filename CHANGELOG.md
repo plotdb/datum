@@ -1,6 +1,6 @@
 # Change Logs
 
-## v0.0.11 (upcoming)
+## v0.0.11
 
  - fix bug: `bind()` for multiple dimension check types in incorrect fields
 
