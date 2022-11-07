@@ -282,7 +282,5 @@ datum =
     data.head = data.head.map (h) -> if map[h] => that else h
     return data
 
-
-
 if module? => module.exports = datum
 else if window? => window.datum = datum
