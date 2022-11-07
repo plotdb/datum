@@ -29,7 +29,7 @@ datum =
     return obj
 
   concat: (ds) ->
-    ds = ds.map (d) -> data.as-db d
+    ds = ds.map (d) -> datum.as-db d
     head = ds.0.head
     body = []
     for i from 0 til ds.length =>

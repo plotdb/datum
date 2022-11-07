@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.0.12 (upcoming)
+
+ - fix bug: typo in `concat` api
+
+
 ## v0.0.11
 
  - fix bug: `bind()` for multiple dimension check types in incorrect fields

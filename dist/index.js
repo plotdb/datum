@@ -68,7 +68,7 @@
     concat: function(ds){
       var head, body, i$, to$, i;
       ds = ds.map(function(d){
-        return data.asDb(d);
+        return datum.asDb(d);
       });
       head = ds[0].head;
       body = [];
