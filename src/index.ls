@@ -1,55 +1,134 @@
-datum =
-  _sep: \-
-  # there are two types of data:
-  #  - `db`: {head: [...], body: [{ ... }, ... ]} or [{ ... }, ... ]
-  #  - `sheet`: [[ ...], ... ]
-  format: ->
-    if !it or !Array.isArray(it) or (it.0 and !Array.isArray(it.0)) => return \db
-    return \sheet
+/*
+api change:
+ shrink: ({cols, keep}) 
+*/
+datum = (o={}) ->
+  if !(@ instanceof datum) => return if o instanceof datum => o else new datum o
+  @_sep = o.sep or \-
+  if Array.isArray(o) or o.body => @from o
+  else if o.data => @from o.data
+  else @clear!
+  @
 
-  # convert db/sheet type to sheet type
-  as-sheet: (obj) ->
-    if @format(obj) == \sheet => return obj
-    if Array.isArray(obj) => obj = {head: [k for k of obj.0], body: obj}
-    sheet = [obj.head] ++ obj.body.map((b) -> obj.head.map (h) -> b[h])
-    return sheet
+itf =
+  clear: -> @_d = h: [], b: [], n: ''
+  clone: -> new datum(@as-sheet!)
+  format: (o) ->
+    return if !o or !Array.isArray(o) or (o.0 and !Array.isArray(o.0)) => \db
+    else if o instanceof datum => \datum
+    else \sheet
 
-  # convert sheet/db type to db type
-  as-db: (obj, name = 'unnamed') ->
-    if @format(obj) == \sheet =>
-      json = do
-        name: name
-        head: obj.0
-        body: obj.slice 1 .map (b) ->
-          Object.fromEntries obj.0.map (h,i) -> [h, b[i]]
-      return json
-    if Array.isArray(obj) =>
-      return {name, head: [k for k of obj.0], body: obj}
-    if !obj.name => obj.name = 'unnamed'
-    return obj
+  # append (n) after a head name if the name has been used
+  _dedup: (h) ->
+    c = {}
+    h = h.map (n) -> 
+      while c[n] => n = "#n(#{c[n]++})"
+      c[n] = 1
+      n
+    h
 
-  concat: (ds) ->
-    ds = ds.map (d) -> datum.as-db d
-    head = ds.0.head
+  from: (d = {}) ->
+    @clear!
+    if d instanceof datum => @_d = JSON.parse(JSON.stringify(d._d))
+    else if @format(d) == \sheet =>
+      d = JSON.parse JSON.stringify d
+      d.map (r,i) ~> if i == 0 => @_d.h = r else @_d.b.push r
+    else
+      d = JSON.parse JSON.stringify d
+      [h, b, n] = if Array.isArray(d) => [[k for k of (d.0 or {})], d]
+      else [d.head, d.body, d.name]
+      @_d.n = n or ''
+      @_d.h = h
+      # _b can be either Array or Object.
+      @_d.b = b.map (_b) ~> if Array.isArray(_b) => _b else h.map -> _b[it]
+    @_d.h = @_dedup @_d.h
+    return @
+
+  as-sheet: -> JSON.parse JSON.stringify([@_d.h] ++ @_d.b)
+  as-db: ->
+    @_d.h = h = @_dedup @_d.h
+    return JSON.parse JSON.stringify(
+      name: @_d.n
+      head: @_d.h
+      body: @_d.b.map (b) -> Object.fromEntries b.map((d,i) -> [h[i], d])
+    )
+
+  name: -> @_d.n or ''
+  head: -> @_d.h
+  body: -> @_d.b
+  sep: -> if arguments.length => @_sep = it else @_sep
+
+  concat: ->
+    ds = [@] ++ Array.from(arguments).map(->datum.from it)
+    hs = []
+    ds.map (d) -> hs ++= d.head!
+    hs = Array.from(new Set hs)
+    bs = []
     body = []
     for i from 0 til ds.length =>
-      body ++= ds[i].body.map((d) -> Object.fromEntries(head.map (h) -> [h, d[h]]))
-    return {name: ds.0.name, head, body}
+      [h,b] = [ds[i].head!, ds[i].body!]
+      bs ++= b.map (d,i) -> hs.map -> if ~(j = h.indexOf(it)) => d[j] else undefined
+    @_d.h = hs
+    @_d.b = bs
+    @
 
-  _join-all: (opt = {}) ->
-    sep = @_sep
-    {ds, join-cols} = opt
-    ds = ds.map -> datum.as-db it
-    hs = ds.map -> it.head
-    bs = ds.map -> it.body
-    metas = ds.map -> it{unit, mag, type}
+  shrink: ({cols, keep}) ->
+    [k,c] = [(if keep? and !keep => false else true), cols]
+    c = if Array.isArray c => c else [c]
+    idx = @_d.h.map (h,i) -> if !(k xor (h in c)) => i else -1
+    @_d.h = @_d.h.filter (h,i) -> i in idx
+    @_d.b = @_d.b.map (b) -> b.filter (b,i) -> i in idx
+    @
+
+  rehead: (m) ->
+    @_d.h = @_dedup @_d.h.map (h) -> m[h] or h
+    @
+
+  split: ({col}) ->
+    # h: new header, m: hash of dataset for each name
+    # ds: returned datasets, i: index of specified col in h
+    d = JSON.parse JSON.stringify @_d # clone so we can modify it freely
+    [h, m, ds] = [d.h, {}, []]
+    if !~(i = h.indexOf(col)) => return @clone! # index of col
+    h.splice i, 1 # col removed since we use it to split
+    for b in d.b =>
+      m[][b[i]].push b # row added to table named `val` from col of b (b[i])
+      b.splice i, 1 # val for col removed
+    for k,v of m => ds.push new datum {head: h, body: v, name: "#{if @_d.n => @_id.n + '/' else ''}#k"}
+    return ds
+
+  pivot: (o = {}) ->
+    {col, join-cols, simple-head} = o
+    if !(simple-head?) => simple-head = false
+    ds = @split {col}
+    ds = ds.map (d) -> d.shrink {cols: col, keep: false}
+    ret = datum.join {ds, join-cols, simple-head} # TODO confirm if this is correct
+    @from ret
+    @
+
+  join: ->
+    args = Array.from(arguments)
+    opt = args.filter(->it and (it.join-cols or it.ds)).0 or {}
+    ds = if Array.isArray(opt.ds) => opt.ds else args
+    ds = ds
+      .map ->
+        if it instanceof datum => return it
+        else if Array.isArray(it) or it.body => return datum.from it
+        else null
+      .filter -> it
+    if @ instanceof datum => ds = [@] ++ ds
+    # TODO datasets may use different separator. we should unify them.
+    sep = ds.0.sep!
+    {join-cols, simple-head} = opt
+    hs = ds.map -> it._d.h
+    bs = ds.map -> it._d.b
 
     # we have multiple tables. we want to join them but some columns may have the same name.
     # so we prefix them with table names.
     # yet we are probably joining tables from the same table due to pivoting.
     # in this case table names share common part. we only need to prefix not-common part.
-    ns = ds.map (d,i) -> d.name or "#{i + 1}"
-    ss = ns.map -> it.split(sep)
+    ns = ds.map (d,i) -> d.name! or "#{i + 1}"
+    ss = ns.map ~> it.split(sep)
     idx = -1
     for i from 0 til ss.0.length =>
       for j from 1 til ss.length =>
@@ -59,7 +138,7 @@ datum =
       if idx >= 0 => break
     # not-common part table names
     if idx < 0 => ns = ds.map (d,i) -> "#{i + 1}"
-    else ns = ss.map -> it.slice(idx).join(sep)
+    else ns = ss.map ~> it.slice(idx).join(sep)
 
     # count how many times a header name appear in all tables.
     heads = {}
@@ -70,164 +149,101 @@ datum =
     if !join-cols => join-cols = [k for k of hs].filter -> hs[it] == hs.length
 
     # rename head (h) based on table name (n) if necessary.
-    rehead = (n,h) ->
+    rehead = (n,h) ~>
       # simple-head is true - force to not rename.
-      if opt.simple-head => return n
+      if simple-head => return n
       # h appears multiple times. we need to prefix it to prevent collision.
-      if heads[h] > 1 => return "#n#sep#h"
+      if heads[h] > 1 => return "#n#{sep}#h"
       # h only appears once. no need to prefix it.
       return h
 
     # head mapping.
-    hm = hs.map (oh,i) ->
-      map = Object.fromEntries(
-        oh.map (h) -> [ h, (if !(h in join-cols) => rehead(ns[i],h) else h) ]
+    hm = hs.map (h,i) ->
+      Object.fromEntries(
+        h.map (_h) -> [_h, (if !(_h in join-cols) => rehead(ns[i],_h) else _h) ]
       )
     # all headers after joining.
-    nhs = hs.map (oh,i) ->
-      nh = oh
-        .filter (h) -> !(h in join-cols) # common parts are already added above.
-        .map (h) -> rehead ns[i], h      # rename h if necessary.
+    nhs = hs.map (h,i) ->
+      nh = h
+        .filter (_h) -> !(_h in join-cols) # common parts are already added above.
+        .map (_h) -> rehead ns[i], _h      # rename h if necessary.
     head = ([join-cols] ++ nhs).reduce(((a,b) -> a ++ b),[])
 
     # group rows by values in join-cols
     join-values = {}
     bs.map (body,i) ->
+      head = hs[i]
       body.map (b) ->
         ret = {}
-        index = JSON.stringify(Object.fromEntries(join-cols.map (h) -> [h,b[h]]))
+        index = JSON.stringify(Object.fromEntries(
+          join-cols.map (h) -> [h,b[head.indexOf(h)]]
+        ))
         # rehead body based on head mapping `hm`
-        for k,v of b => ret[hm[i][k]] = v
+        # ret is the dest body while we use object instead of array
+        # to make join easier. will convert it back to array later.
+        for j from 0 til head.length => ret[hm[i][head[j]]] = b[j]
         join-values[][index].push ret
     body = []
     for k,list of join-values =>
       body.push list.reduce(((a,b) -> a <<< b), {})
+    body = body.map (b) -> head.map (h) -> b[h]
+    return datum.from {head, body, name: ds.0.name! or ''}
 
-    base = {mag: {}, unit: {}, type: {}}
-    metas.map (obj, i) ->
-      <[mag unit type]>.map (n) ->
-        if !obj[n] => return
-        for k,v of obj[n] => base[n][hm[i][k]] = v
-
-    return {
-      name: ds.0.name or 'unnamed'
-      head: head
-      body: body
-    } <<< base
-
-
-  join: (opt = {}) ->
-    {d1, d2, join-cols} = opt
-    if opt.ds => return @_join-all opt
-    rehead = if opt.simple-head => ((a,b) -> a) else ((a,b) -> "#a#sep#b")
-    jc = join-cols
-    sep = @_sep
-    [d1, d2] = [d1, d2].map (d) -> datum.as-db d
-    [h1, h2] = [d1.head, d2.head]
-    [b1, b2] = [d1.body, d2.body]
-    [n1, n2] = [d1.name or \1, d2.name or \2]
-    s1 = n1.split(sep)
-    s2 = n2.split(sep)
-    for i from 0 til s1.length => if s1[i] != s2[i] => break
-    [n1, n2] = [s1.slice(i).join(sep), s2.slice(i).join(sep)]
-
-    if !jc => jc = h1.filter (h) -> (~h2.indexOf(h))
-
-    head = [
-      jc.map(-> [it, it]) ++ h1.filter((h) -> !(h in jc)).map((h)-> [h, (if h in h2 => rehead(n1,h) else h)])
-      h2.filter((h) -> !(h in jc)).map((h)-> [h, (if h in h1 => rehead(n2,h) else h)])
-    ]
-
-    base = {}
-    <[mag unit type]>.map (n) ->
-      base[n] = {}
-      if d1[n] => head.0.map (h) -> base[n][h.1] = d1[n][h.0]
-      if d2[n] => head.1.map (h) -> base[n][h.1] = d2[n][h.0]
-
-    head = (head.0 ++ head.1).map -> it.1
-
-    ret = b1.map (r1) ->
-      matched = b2.filter (r2) -> !(jc.filter(-> r2[it] != r1[it]).length)
-      if !matched.length => matched = [{}]
-      ret = matched.map (r2) ->
-        Object.fromEntries(
-          jc.map((h) -> [h, r1[h]]) ++
-          h1.filter((h) -> !(h in jc)).map((h)-> [(if h in h2 => rehead(n1,h) else h), r1[h]]) ++
-          h2.filter((h) -> !(h in jc)).map((h)-> [(if h in h1 => rehead(n2,h) else h), r2[h]])
-        )
-      return ret
-    body = ret.reduce(((a,b) -> a ++ b),[])
-
-    return {
-      name: d1.name or 'unnamed'
-      head: head
-      body: body
-    } <<< base
-
-  split: ({data, col}) ->
-    data = @as-db data
-    head = ([] ++ data.head)
-    if !(~(idx = head.indexOf col)) => return data
-    head.splice idx, 1
-    base = {}
-    <[mag unit type]>.map (n) ->
-      base[n] = {} <<< data[n]
-      delete base[n][col]
-    hash = {}
-    data.body.filter (d) -> hash[][d[col]].push d
-    ret = []
-    for k,v of hash =>
-      ret.push {
-        name: "#{data.name or 'unnamed'}#{@_sep}#k"
-        head: head
-        body: v
-      } <<< JSON.parse(JSON.stringify base)
-    return ret
-
-  pivot: (opt = {}) ->
-    {data, col, join-cols, simple-head} = opt
-    if !(simple-head?) => simple-head = false
-    ds = @split {data, col}
-    ds = ds.map (d) ~> @shrink {data: d, cols: d.head.filter -> it != col}
-    return @join {ds, join-cols, simple-head}
-
-  # TODO unpivot mag, unit and type too
   unpivot: (opt = {}) ->
-    {data, cols, name, order} = opt
+    {cols, name, order} = opt
+    cols = if Array.isArray(cols) => cols else [cols]
+    cols = @_d.h.filter -> !(it in cols)
     if !name => name = \item
     if !(order?) => order = 0
     sep = @_sep
-    data = @as-db data
-    hs = data.head
+    body = @_d.b
+    hs = @_d.h
       .filter -> !(it in cols)
-      .map -> it.split(sep)
+      .map ~> it.split(sep)
     vals = Array.from(new Set(hs.map -> it[order]))
-    tables = vals.map (v) ->
+
+    tables = vals.map (v) ~>
       _cols = cols.map(->[it, it])
       _hs = hs
         .filter(->it[order] == v)
         .map(->
           [
             it.join(sep),
-            it.filter((d,i) -> i != order).join(sep)
+            it.filter((d,i) -> i != order).join(sep) or \value
           ]
         )
-      {
-        name: data.name
-        head: cols ++ [name] ++ _hs.map(-> it.1)
-        body: data.body.map (b) ->
-          Object.fromEntries([[name, v]] ++ (_cols ++ _hs).map (h) -> [h.1,b[h.0]])
-      }
-    ret = @concat tables
-    return ret
+      datum.from do
+        name: @name!
+        head: cols ++ [name] ++ _hs.map(->it.1)
+        body: body.map (b) ~> 
+          cols.map((c)~>b[@_d.h.indexOf(c)]) ++ [v] ++ _hs.map((h) ~> b[@_d.h.indexOf(h.0)])
 
+    ret = datum.concat tables
+    @_d = ret._d
+    return @
+
+  # TODO: test
   group: (opt = {}) ->
-    {data,cols,aggregator,group-func} = opt
-    if !aggregator => aggregator = {}
+    {cols,group-func} = opt
+    agg = opt.aggregator or {}
+    _agg = {}
     cols = if Array.isArray(cols) => cols else [cols]
-    data = @as-db data
-    hs = data.head.filter -> !(it in cols) and (aggregator[it] != null)
-    keys = Array.from(new Set(data.body.map (b) -> JSON.stringify(Object.fromEntries(cols.map -> [it, b[it]]))))
+    # index of columns to merge
+    hs = @_d.h
+      .map (h,i) -> if !(h in cols) and (agg[h] != null) => i else -1
+      .filter -> it >= 0
+    # prepare aggregator for each columns to merge
+    hs.map (i) ~> _agg[i] = agg[@_d.h[i]]
+
+    # index of the index columns in head
+    idxs = cols.map (c) ~> @_d.h.indexOf(c)
+    # corresponding key of the index columns
+    keys = Array.from(new Set(
+      @_d.b.map (b) ~> JSON.stringify(Object.fromEntries(
+        idxs.map (i) ~> [@_d.h[i], b[i]]
+      ))
+    ))
+
     hash = {}
     keys.map (raw) ->
       rkey = JSON.parse(raw)
@@ -241,46 +257,50 @@ datum =
         if !hash[k] => hash[k] = new Set!
         hash[k].add raw
     newkeys = [k for k of hash]
-    ret = newkeys.map (nk) ->
+    body = newkeys.map (nk) ~>
       list = Array.from(hash[nk])
       nk = JSON.parse(nk)
       list = list
-        .map (k) ->
+        .map (k) ~>
           k = JSON.parse(k)
-          data.body.filter (b) -> cols.filter((c) -> b[c] != k[c]).length == 0
+          @_d.b.filter (b) ~> !idxs.filter((i) ~> b[i] != k[@_d.h[i]]).length
         .reduce(((a,b) -> a ++ b), [])
-      ret = Object.fromEntries(
-        hs.map (h) ->
-          ls = list.map((l) -> l[h])
-          ret = if aggregator[h] => aggregator[h] ls else ls.length
-          [h,ret]
-      )
-      cols.map (c) -> ret[c] = nk[c]
+      ret = []
+      idxs.map (i) ~> ret.push nk[@_d.h[i]]
+      hs.map (h,i) ~>
+        ls = list.map((l) ~> l[h])
+        ret.push(if _agg[h] => _agg[h] ls else ls.length)
       ret
-    return {head: (cols ++ hs), body: ret, name: data.name}
+    @from do
+      name: @_d.n
+      head: (cols ++ hs.map((i) ~> @_d.h[i]))
+      body: body
+    return @
 
+datum.prototype = Object.create(Object.prototype) <<< itf
+datum <<<
+  from: (d) -> if (d instanceof datum) => d.clone! else new datum d
+  format: itf.format
+  join: (o) -> (new datum!).join(o)
+  concat: (ds) ->
+    ds = if arguments.length > 1 => Array.from(arguments) else ds
+    ds.map -> console.log it.as-sheet!
+    ret = datum.from ds.0
+    ret.concat.apply(ret, ds.slice 1)
+    ret
   agg:
     average: -> it.reduce(((a,b) -> a + (if isNaN(+b) => 0 else +b)),0) / (it.length or 1)
     sum: -> it.reduce(((a,b) -> a + (if isNaN(+b) => 0 else +b)),0)
     count: -> it.length
     first: -> it.0 or ''
 
-  shrink: ({data, cols}) ->
-    data = @as-db data
-    data.head = data.head.filter(-> it in cols)
-    data.body = data.body.map (b) -> Object.fromEntries(data.head.map (h) -> [h, b[h]])
-    <[unit mag type]>.filter(->data[it]).map (n) ->
-      data[n] = Object.fromEntries(data.head.map (h) -> [h, data[n][h]])
-    return data
-
-  rename: ({data, map}) ->
-    data = @as-db data
-    data.body = data.body.map (b) ->
-      Object.fromEntries data.head.map (h) -> [(if map[h] => that else h), b[h]]
-    <[unit mag type]>.filter(-> data[it]).map (n) ->
-      data[n] = Object.fromEntries(data.head.map (h) -> [map[h] or h, data[n][h]])
-    data.head = data.head.map (h) -> if map[h] => that else h
-    return data
+for k,v of itf =>
+  if datum[k] => continue
+  ((k,v) ->
+    datum[k] = (d, ...args) ->
+      d = if datum.format(d) == \datum => d else datum.from(d)
+      v.apply d, args
+  )(k,v)
 
 if module? => module.exports = datum
 else if window? => window.datum = datum
