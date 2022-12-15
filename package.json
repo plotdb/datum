@@ -22,14 +22,14 @@
     "start": "npx server -r web -o true"
   },
   "devDependencies": {
-    "@loadingio/ldquery": "^3.0.2",
-    "@plotdb/sheet": "^0.2.0",
-    "bootstrap": "^4.5.2",
-    "@loadingio/bootstrap.ext": "^0.0.4",
-    "fedep": "^1.1.2",
-    "ldview": "^1.0.0",
+    "bootstrap": "^4.6.1",
+    "@loadingio/bootstrap.ext": "^0.0.9",
+    "@loadingio/ldquery": "^3.0.4",
+    "ldview": "^1.3.2",
+    "@plotdb/sheet": "^0.5.0",
+    "fedep": "^1.1.7",
+    "@zbryikt/template": "^2.3.45",
     "livescript": "^1.6.0",
-    "@zbryikt/template": "^2.3.33",
     "uglify-js": "^3.13.1",
     "uglifycss": "^0.0.29"
   },

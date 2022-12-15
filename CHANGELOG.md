@@ -2,6 +2,7 @@
 
 ## v0.0.12 (upcoming)
 
+ - upgrade dev dependencies and fix dependencies vulnerabilities
  - fix bug: typo in `concat` api
 
 
