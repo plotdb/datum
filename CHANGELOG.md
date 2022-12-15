@@ -2,6 +2,8 @@
 
 ## v0.0.12 (upcoming)
 
+ - Breaking Changes: API changes.
+ - Refine document
  - upgrade dev dependencies and fix dependencies vulnerabilities
  - fix bug: typo in `concat` api
 
