@@ -798,7 +798,6 @@ api change:
     }
   };
   datum.sample = {
-    context: {},
     C: ['books', 'business', 'education', 'entertainment', 'finance', 'food', 'games', 'health', 'lifestyle', 'medical', 'music', 'navigation', 'news', 'photography', 'productivity', 'social', 'network', 'sports', 'travel', 'utilities', 'weather'],
     N: ["The Perfect Storm", "Philadelphia Story", "Planet of the Apes", "Patton", "Pocahontas", "Pinoccio", "Quills", "Raiders of the Lost Ark", "Romeo and Juliet", "Snow White", "Shine", "Some Like It Hot", "Stardust", "Startrek", "The Seven Year Itch", "The Sound of Music", "Sabrina", "Sixth Sense", "The Silence of the Lambs", "Stargate", "Sunset Boulevard", "Superman"],
     generate: function(arg$){

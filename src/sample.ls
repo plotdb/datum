@@ -1,5 +1,4 @@
 datum.sample =
-  context: {}
   C: <[
     books business education entertainment finance food games
     health lifestyle medical music navigation news photography
