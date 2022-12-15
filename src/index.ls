@@ -284,7 +284,6 @@ datum <<<
   join: (o) -> (new datum!).join(o)
   concat: (ds) ->
     ds = if arguments.length > 1 => Array.from(arguments) else ds
-    ds.map -> console.log it.as-sheet!
     ret = datum.from ds.0
     ret.concat.apply(ret, ds.slice 1)
     ret

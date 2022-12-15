@@ -540,9 +540,6 @@ api change:
   datum.concat = function(ds){
     var ret;
     ds = arguments.length > 1 ? Array.from(arguments) : ds;
-    ds.map(function(it){
-      return console.log(it.asSheet());
-    });
     ret = datum.from(ds[0]);
     ret.concat.apply(ret, ds.slice(1));
     return ret;
