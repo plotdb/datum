@@ -27,7 +27,6 @@ datum.type =
     if c > 0.85 => n = c * 0.99
     n
 
-
   C: (opt={}) ->
     len = Array.from(new Set(opt.data)).length 
     maxlen = opt.data.length
@@ -98,4 +97,3 @@ datum.type =
           if dataset.unit => b.unit = dataset.unit[b.key] or ''
           delete b.used
     return ret
-

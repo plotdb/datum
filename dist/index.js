@@ -205,7 +205,7 @@ api change:
         ds.push(new datum({
           head: h,
           body: v,
-          name: (this._d.n ? this._id.n + '/' : '') + "" + k
+          name: (this._d.n ? this._d.n + '/' : '') + "" + k
         }));
       }
       return ds;

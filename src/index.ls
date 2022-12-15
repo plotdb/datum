@@ -94,7 +94,7 @@ itf =
     for b in d.b =>
       m[][b[i]].push b # row added to table named `val` from col of b (b[i])
       b.splice i, 1 # val for col removed
-    for k,v of m => ds.push new datum {head: h, body: v, name: "#{if @_d.n => @_id.n + '/' else ''}#k"}
+    for k,v of m => ds.push new datum {head: h, body: v, name: "#{if @_d.n => @_d.n + '/' else ''}#k"}
     return ds
 
   pivot: (o = {}) ->
