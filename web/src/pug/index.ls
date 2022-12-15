@@ -1,4 +1,4 @@
-ds = datum.as-db [
+ds = datum.from [
   ["year", "category", "attribute", "value"],
   [2000, "Online", "revenue", 90],
   [2000, "Offline", "revenue", 100],
@@ -17,19 +17,21 @@ ds = datum.as-db [
   [2003, "Online", "cost", 90],
   [2003, "Offline", "cost", 65],
 ]
+
 s = new sheet do
   root: ld$.find('.root',0)
-  data: datum.as-sheet ds
+  data: ds.as-sheet!
   frozen: row: 1
   fixed: row: 1
 
-ds2 = datum.pivot {data: ds, col: "category", join-cols: <[year attribute]>}
-console.log ds2
+ds2 = datum.pivot ds, {col: "category", join-cols: <[year attribute]>}
+console.log "[ds - after pivot]", ds2
 
 ret = datum.type.get ds
-console.log ret
+console.log "[ds - type]", ret
+db = ds.as-db!
 ret.map (d,i) ->
-  idx = ds.head.indexOf(d.key)
+  idx = db.head.indexOf(d.key)
   c = s.cell x: (idx + 1), y: 1 
   c.textContent = d.type
 
