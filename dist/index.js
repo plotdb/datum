@@ -1,115 +1,270 @@
+/*
+api change:
+ shrink: ({cols, keep}) 
+*/
 (function(){
-  var datum;
-  datum = {
-    _sep: '-',
-    format: function(it){
-      if (!it || !Array.isArray(it) || (it[0] && !Array.isArray(it[0]))) {
-        return 'db';
-      }
-      return 'sheet';
+  var datum, itf, k, v;
+  datum = function(o){
+    o == null && (o = {});
+    if (!(this instanceof datum)) {
+      return o instanceof datum
+        ? o
+        : new datum(o);
+    }
+    this._sep = o.sep || '-';
+    if (Array.isArray(o) || o.body) {
+      this.from(o);
+    } else if (o.data) {
+      this.from(o.data);
+    } else {
+      this.clear();
+    }
+    return this;
+  };
+  itf = {
+    clear: function(){
+      return this._d = {
+        h: [],
+        b: [],
+        n: ''
+      };
     },
-    asSheet: function(obj){
-      var k, sheet;
-      if (this.format(obj) === 'sheet') {
-        return obj;
-      }
-      if (Array.isArray(obj)) {
-        obj = {
-          head: (function(){
-            var results$ = [];
-            for (k in obj[0]) {
-              results$.push(k);
-            }
-            return results$;
-          }()),
-          body: obj
-        };
-      }
-      sheet = [obj.head].concat(obj.body.map(function(b){
-        return obj.head.map(function(h){
-          return b[h];
-        });
-      }));
-      return sheet;
+    clone: function(){
+      return new datum(this.asSheet());
     },
-    asDb: function(obj, name){
-      var json, k;
-      name == null && (name = 'unnamed');
-      if (this.format(obj) === 'sheet') {
-        json = {
-          name: name,
-          head: obj[0],
-          body: obj.slice(1).map(function(b){
-            return Object.fromEntries(obj[0].map(function(h, i){
-              return [h, b[i]];
-            }));
-          })
-        };
-        return json;
-      }
-      if (Array.isArray(obj)) {
-        return {
-          name: name,
-          head: (function(){
-            var results$ = [];
-            for (k in obj[0]) {
-              results$.push(k);
-            }
-            return results$;
-          }()),
-          body: obj
-        };
-      }
-      if (!obj.name) {
-        obj.name = 'unnamed';
-      }
-      return obj;
+    format: function(o){
+      return !o || !Array.isArray(o) || (o[0] && !Array.isArray(o[0]))
+        ? 'db'
+        : o instanceof datum ? 'datum' : 'sheet';
     },
-    concat: function(ds){
-      var head, body, i$, to$, i;
-      ds = ds.map(function(d){
-        return datum.asDb(d);
+    _dedup: function(h){
+      var c;
+      c = {};
+      h = h.map(function(n){
+        while (c[n]) {
+          n = n + "(" + (c[n]++) + ")";
+        }
+        c[n] = 1;
+        return n;
       });
-      head = ds[0].head;
+      return h;
+    },
+    from: function(d){
+      var k, ref$, h, b, n, this$ = this;
+      d == null && (d = {});
+      this.clear();
+      if (d instanceof datum) {
+        this._d = JSON.parse(JSON.stringify(d._d));
+      } else if (this.format(d) === 'sheet') {
+        d = JSON.parse(JSON.stringify(d));
+        d.map(function(r, i){
+          if (i === 0) {
+            return this$._d.h = r;
+          } else {
+            return this$._d.b.push(r);
+          }
+        });
+      } else {
+        d = JSON.parse(JSON.stringify(d));
+        ref$ = Array.isArray(d)
+          ? [
+            (function(){
+              var results$ = [];
+              for (k in d[0] || {}) {
+                results$.push(k);
+              }
+              return results$;
+            }()), d
+          ]
+          : [d.head, d.body, d.name], h = ref$[0], b = ref$[1], n = ref$[2];
+        this._d.n = n || '';
+        this._d.h = h;
+        this._d.b = b.map(function(_b){
+          if (Array.isArray(_b)) {
+            return _b;
+          } else {
+            return h.map(function(it){
+              return _b[it];
+            });
+          }
+        });
+      }
+      this._d.h = this._dedup(this._d.h);
+      return this;
+    },
+    asSheet: function(){
+      return JSON.parse(JSON.stringify([this._d.h].concat(this._d.b)));
+    },
+    asDb: function(){
+      var h;
+      this._d.h = h = this._dedup(this._d.h);
+      return JSON.parse(JSON.stringify({
+        name: this._d.n,
+        head: this._d.h,
+        body: this._d.b.map(function(b){
+          return Object.fromEntries(b.map(function(d, i){
+            return [h[i], d];
+          }));
+        })
+      }));
+    },
+    name: function(){
+      return this._d.n || '';
+    },
+    head: function(){
+      return this._d.h;
+    },
+    body: function(){
+      return this._d.b;
+    },
+    sep: function(it){
+      if (arguments.length) {
+        return this._sep = it;
+      } else {
+        return this._sep;
+      }
+    },
+    concat: function(){
+      var ds, hs, bs, body, i$, to$, i, ref$, h, b;
+      ds = [this].concat(Array.from(arguments).map(function(it){
+        return datum.from(it);
+      }));
+      hs = [];
+      ds.map(function(d){
+        return hs = hs.concat(d.head());
+      });
+      hs = Array.from(new Set(hs));
+      bs = [];
       body = [];
       for (i$ = 0, to$ = ds.length; i$ < to$; ++i$) {
         i = i$;
-        body = body.concat(ds[i].body.map(fn$));
+        ref$ = [ds[i].head(), ds[i].body()], h = ref$[0], b = ref$[1];
+        bs = bs.concat(b.map(fn$));
       }
-      return {
-        name: ds[0].name,
-        head: head,
-        body: body
-      };
-      function fn$(d){
-        return Object.fromEntries(head.map(function(h){
-          return [h, d[h]];
-        }));
+      this._d.h = hs;
+      this._d.b = bs;
+      return this;
+      function fn$(d, i){
+        return hs.map(function(it){
+          var j;
+          if (~(j = h.indexOf(it))) {
+            return d[j];
+          } else {
+            return undefined;
+          }
+        });
       }
     },
-    _joinAll: function(opt){
-      var sep, ds, joinCols, hs, bs, metas, ns, ss, idx, i$, to$, i, j$, to1$, j, heads, k, rehead, hm, nhs, head, joinValues, body, list, base;
-      opt == null && (opt = {});
-      sep = this._sep;
-      ds = opt.ds, joinCols = opt.joinCols;
-      ds = ds.map(function(it){
-        return datum.asDb(it);
+    shrink: function(arg$){
+      var cols, keep, ref$, k, c, idx;
+      cols = arg$.cols, keep = arg$.keep;
+      ref$ = [keep != null && !keep ? false : true, cols], k = ref$[0], c = ref$[1];
+      c = Array.isArray(c)
+        ? c
+        : [c];
+      idx = this._d.h.map(function(h, i){
+        var ref$;
+        if (!(!k !== !(ref$ = in$(h, c)) && (k || ref$))) {
+          return i;
+        } else {
+          return -1;
+        }
       });
+      this._d.h = this._d.h.filter(function(h, i){
+        return in$(i, idx);
+      });
+      this._d.b = this._d.b.map(function(b){
+        return b.filter(function(b, i){
+          return in$(i, idx);
+        });
+      });
+      return this;
+    },
+    rehead: function(m){
+      this._d.h = this._dedup(this._d.h.map(function(h){
+        return m[h] || h;
+      }));
+      return this;
+    },
+    split: function(arg$){
+      var col, d, ref$, h, m, ds, i, i$, len$, b, key$, k, v;
+      col = arg$.col;
+      d = JSON.parse(JSON.stringify(this._d));
+      ref$ = [d.h, {}, []], h = ref$[0], m = ref$[1], ds = ref$[2];
+      if (!~(i = h.indexOf(col))) {
+        return this.clone();
+      }
+      h.splice(i, 1);
+      for (i$ = 0, len$ = (ref$ = d.b).length; i$ < len$; ++i$) {
+        b = ref$[i$];
+        (m[key$ = b[i]] || (m[key$] = [])).push(b);
+        b.splice(i, 1);
+      }
+      for (k in m) {
+        v = m[k];
+        ds.push(new datum({
+          head: h,
+          body: v,
+          name: (this._d.n ? this._id.n + '/' : '') + "" + k
+        }));
+      }
+      return ds;
+    },
+    pivot: function(o){
+      var col, joinCols, simpleHead, ds, ret;
+      o == null && (o = {});
+      col = o.col, joinCols = o.joinCols, simpleHead = o.simpleHead;
+      if (!(simpleHead != null)) {
+        simpleHead = false;
+      }
+      ds = this.split({
+        col: col
+      });
+      ds = ds.map(function(d){
+        return d.shrink({
+          cols: col,
+          keep: false
+        });
+      });
+      ret = datum.join({
+        ds: ds,
+        joinCols: joinCols,
+        simpleHead: simpleHead
+      });
+      this.from(ret);
+      return this;
+    },
+    join: function(){
+      var args, opt, ds, sep, joinCols, simpleHead, hs, bs, ns, ss, idx, i$, to$, i, j$, to1$, j, heads, k, rehead, hm, nhs, head, joinValues, body, list;
+      args = Array.from(arguments);
+      opt = args.filter(function(it){
+        return it && (it.joinCols || it.ds);
+      })[0] || {};
+      ds = Array.isArray(opt.ds) ? opt.ds : args;
+      ds = ds.map(function(it){
+        if (it instanceof datum) {
+          return it;
+        } else if (Array.isArray(it) || it.body) {
+          return datum.from(it);
+        } else {
+          return null;
+        }
+      }).filter(function(it){
+        return it;
+      });
+      if (this instanceof datum) {
+        ds = [this].concat(ds);
+      }
+      sep = ds[0].sep();
+      joinCols = opt.joinCols, simpleHead = opt.simpleHead;
       hs = ds.map(function(it){
-        return it.head;
+        return it._d.h;
       });
       bs = ds.map(function(it){
-        return it.body;
-      });
-      metas = ds.map(function(it){
-        return {
-          unit: it.unit,
-          mag: it.mag,
-          type: it.type
-        };
+        return it._d.b;
       });
       ns = ds.map(function(d, i){
-        return d.name || (i + 1) + "";
+        return d.name() || (i + 1) + "";
       });
       ss = ns.map(function(it){
         return it.split(sep);
@@ -155,7 +310,7 @@
         });
       }
       rehead = function(n, h){
-        if (opt.simpleHead) {
+        if (simpleHead) {
           return n;
         }
         if (heads[h] > 1) {
@@ -163,18 +318,17 @@
         }
         return h;
       };
-      hm = hs.map(function(oh, i){
-        var map;
-        return map = Object.fromEntries(oh.map(function(h){
-          return [h, !in$(h, joinCols) ? rehead(ns[i], h) : h];
+      hm = hs.map(function(h, i){
+        return Object.fromEntries(h.map(function(_h){
+          return [_h, !in$(_h, joinCols) ? rehead(ns[i], _h) : _h];
         }));
       });
-      nhs = hs.map(function(oh, i){
+      nhs = hs.map(function(h, i){
         var nh;
-        return nh = oh.filter(function(h){
-          return !in$(h, joinCols);
-        }).map(function(h){
-          return rehead(ns[i], h);
+        return nh = h.filter(function(_h){
+          return !in$(_h, joinCols);
+        }).map(function(_h){
+          return rehead(ns[i], _h);
         });
       });
       head = ([joinCols].concat(nhs)).reduce(function(a, b){
@@ -182,15 +336,17 @@
       }, []);
       joinValues = {};
       bs.map(function(body, i){
+        var head;
+        head = hs[i];
         return body.map(function(b){
-          var ret, index, k, v;
+          var ret, index, i$, to$, j;
           ret = {};
           index = JSON.stringify(Object.fromEntries(joinCols.map(function(h){
-            return [h, b[h]];
+            return [h, b[head.indexOf(h)]];
           })));
-          for (k in b) {
-            v = b[k];
-            ret[hm[i][k]] = v;
+          for (i$ = 0, to$ = head.length; i$ < to$; ++i$) {
+            j = i$;
+            ret[hm[i][head[j]]] = b[j];
           }
           return (joinValues[index] || (joinValues[index] = [])).push(ret);
         });
@@ -200,193 +356,30 @@
         list = joinValues[k];
         body.push(list.reduce(fn$, {}));
       }
-      base = {
-        mag: {},
-        unit: {},
-        type: {}
-      };
-      metas.map(function(obj, i){
-        return ['mag', 'unit', 'type'].map(function(n){
-          var k, ref$, v, results$ = [];
-          if (!obj[n]) {
-            return;
-          }
-          for (k in ref$ = obj[n]) {
-            v = ref$[k];
-            results$.push(base[n][hm[i][k]] = v);
-          }
-          return results$;
+      body = body.map(function(b){
+        return head.map(function(h){
+          return b[h];
         });
       });
-      return import$({
-        name: ds[0].name || 'unnamed',
+      return datum.from({
         head: head,
-        body: body
-      }, base);
+        body: body,
+        name: ds[0].name() || ''
+      });
       function fn$(a, b){
         return import$(a, b);
       }
     },
-    join: function(opt){
-      var d1, d2, joinCols, rehead, jc, sep, ref$, h1, h2, b1, b2, n1, n2, s1, s2, i$, to$, i, head, base, ret, body;
-      opt == null && (opt = {});
-      d1 = opt.d1, d2 = opt.d2, joinCols = opt.joinCols;
-      if (opt.ds) {
-        return this._joinAll(opt);
-      }
-      rehead = opt.simpleHead
-        ? function(a, b){
-          return a;
-        }
-        : function(a, b){
-          return a + "" + sep + b;
-        };
-      jc = joinCols;
-      sep = this._sep;
-      ref$ = [d1, d2].map(function(d){
-        return datum.asDb(d);
-      }), d1 = ref$[0], d2 = ref$[1];
-      ref$ = [d1.head, d2.head], h1 = ref$[0], h2 = ref$[1];
-      ref$ = [d1.body, d2.body], b1 = ref$[0], b2 = ref$[1];
-      ref$ = [d1.name || '1', d2.name || '2'], n1 = ref$[0], n2 = ref$[1];
-      s1 = n1.split(sep);
-      s2 = n2.split(sep);
-      for (i$ = 0, to$ = s1.length; i$ < to$; ++i$) {
-        i = i$;
-        if (s1[i] !== s2[i]) {
-          break;
-        }
-      }
-      ref$ = [s1.slice(i).join(sep), s2.slice(i).join(sep)], n1 = ref$[0], n2 = ref$[1];
-      if (!jc) {
-        jc = h1.filter(function(h){
-          return ~h2.indexOf(h);
-        });
-      }
-      head = [
-        jc.map(function(it){
-          return [it, it];
-        }).concat(h1.filter(function(h){
-          return !in$(h, jc);
-        }).map(function(h){
-          return [h, in$(h, h2) ? rehead(n1, h) : h];
-        })), h2.filter(function(h){
-          return !in$(h, jc);
-        }).map(function(h){
-          return [h, in$(h, h1) ? rehead(n2, h) : h];
-        })
-      ];
-      base = {};
-      ['mag', 'unit', 'type'].map(function(n){
-        base[n] = {};
-        if (d1[n]) {
-          head[0].map(function(h){
-            return base[n][h[1]] = d1[n][h[0]];
-          });
-        }
-        if (d2[n]) {
-          return head[1].map(function(h){
-            return base[n][h[1]] = d2[n][h[0]];
-          });
-        }
-      });
-      head = (head[0].concat(head[1])).map(function(it){
-        return it[1];
-      });
-      ret = b1.map(function(r1){
-        var matched, ret;
-        matched = b2.filter(function(r2){
-          return !jc.filter(function(it){
-            return r2[it] !== r1[it];
-          }).length;
-        });
-        if (!matched.length) {
-          matched = [{}];
-        }
-        ret = matched.map(function(r2){
-          return Object.fromEntries(jc.map(function(h){
-            return [h, r1[h]];
-          }).concat(h1.filter(function(h){
-            return !in$(h, jc);
-          }).map(function(h){
-            return [in$(h, h2) ? rehead(n1, h) : h, r1[h]];
-          }), h2.filter(function(h){
-            return !in$(h, jc);
-          }).map(function(h){
-            return [in$(h, h1) ? rehead(n2, h) : h, r2[h]];
-          })));
-        });
-        return ret;
-      });
-      body = ret.reduce(function(a, b){
-        return a.concat(b);
-      }, []);
-      return import$({
-        name: d1.name || 'unnamed',
-        head: head,
-        body: body
-      }, base);
-    },
-    split: function(arg$){
-      var data, col, head, idx, base, hash, ret, k, v;
-      data = arg$.data, col = arg$.col;
-      data = this.asDb(data);
-      head = [].concat(data.head);
-      if (!~(idx = head.indexOf(col))) {
-        return data;
-      }
-      head.splice(idx, 1);
-      base = {};
-      ['mag', 'unit', 'type'].map(function(n){
-        var ref$, ref1$;
-        base[n] = import$({}, data[n]);
-        return ref1$ = (ref$ = base[n])[col], delete ref$[col], ref1$;
-      });
-      hash = {};
-      data.body.filter(function(d){
-        var key$;
-        return (hash[key$ = d[col]] || (hash[key$] = [])).push(d);
-      });
-      ret = [];
-      for (k in hash) {
-        v = hash[k];
-        ret.push(import$({
-          name: (data.name || 'unnamed') + "" + this._sep + k,
-          head: head,
-          body: v
-        }, JSON.parse(JSON.stringify(base))));
-      }
-      return ret;
-    },
-    pivot: function(opt){
-      var data, col, joinCols, simpleHead, ds, this$ = this;
-      opt == null && (opt = {});
-      data = opt.data, col = opt.col, joinCols = opt.joinCols, simpleHead = opt.simpleHead;
-      if (!(simpleHead != null)) {
-        simpleHead = false;
-      }
-      ds = this.split({
-        data: data,
-        col: col
-      });
-      ds = ds.map(function(d){
-        return this$.shrink({
-          data: d,
-          cols: d.head.filter(function(it){
-            return it !== col;
-          })
-        });
-      });
-      return this.join({
-        ds: ds,
-        joinCols: joinCols,
-        simpleHead: simpleHead
-      });
-    },
     unpivot: function(opt){
-      var data, cols, name, order, sep, hs, vals, tables, ret;
+      var cols, name, order, sep, body, hs, vals, tables, ret, this$ = this;
       opt == null && (opt = {});
-      data = opt.data, cols = opt.cols, name = opt.name, order = opt.order;
+      cols = opt.cols, name = opt.name, order = opt.order;
+      cols = Array.isArray(cols)
+        ? cols
+        : [cols];
+      cols = this._d.h.filter(function(it){
+        return !in$(it, cols);
+      });
       if (!name) {
         name = 'item';
       }
@@ -394,8 +387,8 @@
         order = 0;
       }
       sep = this._sep;
-      data = this.asDb(data);
-      hs = data.head.filter(function(it){
+      body = this._d.b;
+      hs = this._d.h.filter(function(it){
         return !in$(it, cols);
       }).map(function(it){
         return it.split(sep);
@@ -414,41 +407,54 @@
           return [
             it.join(sep), it.filter(function(d, i){
               return i !== order;
-            }).join(sep)
+            }).join(sep) || 'value'
           ];
         });
-        return {
-          name: data.name,
+        return datum.from({
+          name: this$.name(),
           head: cols.concat([name], _hs.map(function(it){
             return it[1];
           })),
-          body: data.body.map(function(b){
-            return Object.fromEntries([[name, v]].concat((_cols.concat(_hs)).map(function(h){
-              return [h[1], b[h[0]]];
-            })));
+          body: body.map(function(b){
+            return cols.map(function(c){
+              return b[this$._d.h.indexOf(c)];
+            }).concat([v], _hs.map(function(h){
+              return b[this$._d.h.indexOf(h[0])];
+            }));
           })
-        };
+        });
       });
-      ret = this.concat(tables);
-      return ret;
+      ret = datum.concat(tables);
+      this._d = ret._d;
+      return this;
     },
     group: function(opt){
-      var data, cols, aggregator, groupFunc, hs, keys, hash, newkeys, res$, k, ret;
+      var cols, groupFunc, agg, _agg, hs, idxs, keys, hash, newkeys, res$, k, body, this$ = this;
       opt == null && (opt = {});
-      data = opt.data, cols = opt.cols, aggregator = opt.aggregator, groupFunc = opt.groupFunc;
-      if (!aggregator) {
-        aggregator = {};
-      }
+      cols = opt.cols, groupFunc = opt.groupFunc;
+      agg = opt.aggregator || {};
+      _agg = {};
       cols = Array.isArray(cols)
         ? cols
         : [cols];
-      data = this.asDb(data);
-      hs = data.head.filter(function(it){
-        return !in$(it, cols) && aggregator[it] !== null;
+      hs = this._d.h.map(function(h, i){
+        if (!in$(h, cols) && agg[h] !== null) {
+          return i;
+        } else {
+          return -1;
+        }
+      }).filter(function(it){
+        return it >= 0;
       });
-      keys = Array.from(new Set(data.body.map(function(b){
-        return JSON.stringify(Object.fromEntries(cols.map(function(it){
-          return [it, b[it]];
+      hs.map(function(i){
+        return _agg[i] = agg[this$._d.h[i]];
+      });
+      idxs = cols.map(function(c){
+        return this$._d.h.indexOf(c);
+      });
+      keys = Array.from(new Set(this._d.b.map(function(b){
+        return JSON.stringify(Object.fromEntries(idxs.map(function(i){
+          return [this$._d.h[i], b[i]];
         })));
       })));
       hash = {};
@@ -480,112 +486,96 @@
         res$.push(k);
       }
       newkeys = res$;
-      ret = newkeys.map(function(nk){
+      body = newkeys.map(function(nk){
         var list, ret;
         list = Array.from(hash[nk]);
         nk = JSON.parse(nk);
         list = list.map(function(k){
           k = JSON.parse(k);
-          return data.body.filter(function(b){
-            return cols.filter(function(c){
-              return b[c] !== k[c];
-            }).length === 0;
+          return this$._d.b.filter(function(b){
+            return !idxs.filter(function(i){
+              return b[i] !== k[this$._d.h[i]];
+            }).length;
           });
         }).reduce(function(a, b){
           return a.concat(b);
         }, []);
-        ret = Object.fromEntries(hs.map(function(h){
-          var ls, ret;
+        ret = [];
+        idxs.map(function(i){
+          return ret.push(nk[this$._d.h[i]]);
+        });
+        hs.map(function(h, i){
+          var ls;
           ls = list.map(function(l){
             return l[h];
           });
-          ret = aggregator[h]
-            ? aggregator[h](ls)
-            : ls.length;
-          return [h, ret];
-        }));
-        cols.map(function(c){
-          return ret[c] = nk[c];
+          return ret.push(_agg[h]
+            ? _agg[h](ls)
+            : ls.length);
         });
         return ret;
       });
-      return {
-        head: cols.concat(hs),
-        body: ret,
-        name: data.name
-      };
-    },
-    agg: {
-      average: function(it){
-        return it.reduce(function(a, b){
-          return a + (isNaN(+b)
-            ? 0
-            : +b);
-        }, 0) / (it.length || 1);
-      },
-      sum: function(it){
-        return it.reduce(function(a, b){
-          return a + (isNaN(+b)
-            ? 0
-            : +b);
-        }, 0);
-      },
-      count: function(it){
-        return it.length;
-      },
-      first: function(it){
-        return it[0] || '';
-      }
-    },
-    shrink: function(arg$){
-      var data, cols;
-      data = arg$.data, cols = arg$.cols;
-      data = this.asDb(data);
-      data.head = data.head.filter(function(it){
-        return in$(it, cols);
+      this.from({
+        name: this._d.n,
+        head: cols.concat(hs.map(function(i){
+          return this$._d.h[i];
+        })),
+        body: body
       });
-      data.body = data.body.map(function(b){
-        return Object.fromEntries(data.head.map(function(h){
-          return [h, b[h]];
-        }));
-      });
-      ['unit', 'mag', 'type'].filter(function(it){
-        return data[it];
-      }).map(function(n){
-        return data[n] = Object.fromEntries(data.head.map(function(h){
-          return [h, data[n][h]];
-        }));
-      });
-      return data;
-    },
-    rename: function(arg$){
-      var data, map;
-      data = arg$.data, map = arg$.map;
-      data = this.asDb(data);
-      data.body = data.body.map(function(b){
-        return Object.fromEntries(data.head.map(function(h){
-          var that;
-          return [(that = map[h]) ? that : h, b[h]];
-        }));
-      });
-      ['unit', 'mag', 'type'].filter(function(it){
-        return data[it];
-      }).map(function(n){
-        return data[n] = Object.fromEntries(data.head.map(function(h){
-          return [map[h] || h, data[n][h]];
-        }));
-      });
-      data.head = data.head.map(function(h){
-        var that;
-        if (that = map[h]) {
-          return that;
-        } else {
-          return h;
-        }
-      });
-      return data;
+      return this;
     }
   };
+  datum.prototype = import$(Object.create(Object.prototype), itf);
+  datum.from = function(d){
+    if (d instanceof datum) {
+      return d.clone();
+    } else {
+      return new datum(d);
+    }
+  };
+  datum.format = itf.format;
+  datum.join = function(o){
+    return new datum().join(o);
+  };
+  datum.concat = function(ds){
+    var ret;
+    ds = arguments.length > 1 ? Array.from(arguments) : ds;
+    ds.map(function(it){
+      return console.log(it.asSheet());
+    });
+    ret = datum.from(ds[0]);
+    ret.concat.apply(ret, ds.slice(1));
+    return ret;
+  };
+  datum.agg = {
+    average: function(it){
+      return it.reduce(function(a, b){
+        return a + (isNaN(+b)
+          ? 0
+          : +b);
+      }, 0) / (it.length || 1);
+    },
+    sum: function(it){
+      return it.reduce(function(a, b){
+        return a + (isNaN(+b)
+          ? 0
+          : +b);
+      }, 0);
+    },
+    count: function(it){
+      return it.length;
+    },
+    first: function(it){
+      return it[0] || '';
+    }
+  };
+  for (k in itf) {
+    v = itf[k];
+    if (datum[k]) {
+      continue;
+    }
+    fn$(k, v);
+  }
   if (typeof module != 'undefined' && module !== null) {
     module.exports = datum;
   } else if (typeof window != 'undefined' && window !== null) {
@@ -905,5 +895,19 @@
     var own = {}.hasOwnProperty;
     for (var key in src) if (own.call(src, key)) obj[key] = src[key];
     return obj;
+  }
+  function fn$(k, v){
+    return datum[k] = function(d){
+      var args, res$, i$, to$;
+      res$ = [];
+      for (i$ = 1, to$ = arguments.length; i$ < to$; ++i$) {
+        res$.push(arguments[i$]);
+      }
+      args = res$;
+      d = datum.format(d) === 'datum'
+        ? d
+        : datum.from(d);
+      return v.apply(d, args);
+    };
   }
 }).call(this);
