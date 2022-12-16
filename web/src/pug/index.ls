@@ -1,4 +1,24 @@
-ds = datum.from [
+view = new ldview { root: document.body }
+
+ds = {}
+s = {}
+
+new-sheet = (n) -> 
+  s[n] = new sheet do
+    root: view.get(n)
+    data: ds[n].as-sheet!
+    frozen: row: 1
+    fixed: row: 1
+
+get-type = (n) ->
+  ret = datum.type.get ds[n]
+  db = ds[n].as-db!
+  ret.map (d,i) ->
+    idx = db.head.indexOf(d.key)
+    c = s[n].cell x: (idx + 1), y: 1 
+    c.textContent = d.type
+
+ds.src = datum.from [
   ["year", "category", "attribute", "value"],
   [2000, "Online", "revenue", 90],
   [2000, "Offline", "revenue", 100],
@@ -18,31 +38,38 @@ ds = datum.from [
   [2003, "Offline", "cost", 65],
 ]
 
-s = new sheet do
-  root: ld$.find('.root',0)
-  data: ds.as-sheet!
-  frozen: row: 1
-  fixed: row: 1
+new-sheet \src
+get-type \src
 
-ds2 = datum.pivot ds, {col: "category", join-cols: <[year attribute]>}
-console.log "[ds - after pivot]", ds2
+ds.pivot = datum.pivot ds.src, {col: "category", join-cols: <[year attribute]>}
+console.log "[ds - after pivot]", ds.pivot
 
-ret = datum.type.get ds
-console.log "[ds - type]", ret
-db = ds.as-db!
-ret.map (d,i) ->
-  idx = db.head.indexOf(d.key)
-  c = s.cell x: (idx + 1), y: 1 
-  c.textContent = d.type
+new-sheet \pivot
+get-type \pivot
 
 dimension =
   x: type: \O, priority: 1
   y: type: \R, priority: 2
   cat: type: \C, priority: 3
-bind = datum.type.bind ds2, dimension
+
+bind = datum.type.bind ds.pivot, dimension
 console.log bind
 
-s.data datum.as-sheet ds2
+ret = ds.pivot.split {col:\attribute}
+ds.split1 = ret.0
+ds.split2 = ret.1
+new-sheet \split1
+new-sheet \split2
+get-type \split1
+get-type \split2
+
+ds.group = ds.pivot.group {cols: <[attribute]>, aggregator: {
+  year: datum.agg.first
+  "Online-value": datum.agg.average
+  "Offline-value": datum.agg.average
+}}
+new-sheet \group
+get-type \group
 
 binding = 
   x: {type: \O, key: \order, offset: 1980, repeat: 3}
@@ -50,12 +77,8 @@ binding =
   n: {type: \N, key: \name}
   y: [0 to 3].map -> {type: \R, key: "sensor-#it", range: [50, 100]}
 ret = datum.sample.generate {count: 100, binding}
-ds3 = datum.as-db ret.raw
+ds.gen = new datum ret.raw
 console.log ret
-s.data datum.as-sheet ds3
-ret = datum.type.get ds3
-console.log ret
-ret.map (d,i) ->
-  idx = ds3.head.indexOf(d.key)
-  c = s.cell x: (idx + 1), y: 1 
-  c.textContent = d.type
+
+new-sheet \gen
+get-type \gen

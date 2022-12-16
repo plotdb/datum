@@ -7,6 +7,30 @@ block head
       justify-content: center
 block body
   .w-1024.rwd.mx-auto.my-4
-    .aspect-ratio.ratio-3by2: .root.border.shadow-sm.rounded
+    .mb-4
+      label Original Dataset
+      .aspect-ratio.ratio-2by1: .border.shadow-sm.rounded(ld="src")
+
+    .mb-4
+      label Pivoted based on `Category`
+      .aspect-ratio.ratio-2by1: .border.shadow-sm.rounded(ld="pivot")
+
+    .mb-4
+      label Splitted based on `attribute` column
+      .row
+        .col-sm
+          .aspect-ratio.ratio-1by1: .border.shadow-sm.rounded(ld="split1")
+        .col-sm
+          .aspect-ratio.ratio-1by1: .border.shadow-sm.rounded(ld="split2")
+
+    .mb-4
+      label Group pivoted result by `attribute` column
+      .aspect-ratio.ratio-2by1: .border.shadow-sm.rounded(ld="group")
+
+
+    .mb-4
+      label Sample data based on given binding
+      .aspect-ratio.ratio-2by1: .border.shadow-sm.rounded(ld="gen")
+
 block script
   script(type="module"): include:lsc index.ls
