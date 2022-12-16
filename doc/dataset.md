@@ -72,7 +72,7 @@ where the constructor options `opt` can be a dataset JSON object or another `dat
 
 or, an option object with following fields:
 
- - `sep`: separator 
+ - `sep`: separator of column names when pivoting
  - `data`: a optional dataset to initialize this object.
 
 
@@ -142,13 +142,14 @@ Data Manipulation APIs:
  - `group({cols, aggregator, groupFunc})` - merge some rows into one.
    - `cols`: index columns. rows with the same value in these columns with be merged into one row.
    - `aggregator`: hash of column name to a aggregating function. default to count of rows to merge.
-   - `group-func`: either a function, or an object of column name to a mapping function of values in the column
-     - a function: take each row as input, return a group key for grouping rows.
-       - to assign multiple groups for one row, simply return an array of group keys.
-     - an object: containing value transform function for each column
-       - use identity function when a function for certain column is omitted.
-     - useful to group different values into one. e.g., this function groups values by tens digit:
-       `-> Math.floor(it / 10)`
+   - `group-func`: decide what values should be considered as the same ( i.e., the same group )
+     - either a function, or an object of column name to a mapping function of values in the column
+       - a function: take each row as input, return a group key for grouping rows.
+         - to assign multiple groups for one row, simply return an array of group keys.
+       - an object: containing value transform function for each column
+         - use identity function when a function for certain column is omitted.
+       - useful to group different values into one. e.g., this function groups values by tens digit:
+         `-> Math.floor(it / 10)`
 
 
 `datum` class itself also provides above methods, so this is possible:
