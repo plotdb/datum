@@ -102,7 +102,7 @@ itf =
     if !(simple-head?) => simple-head = false
     ds = @split {col}
     ds = ds.map (d) -> d.shrink {cols: col, keep: false}
-    ret = datum.join {ds, join-cols, simple-head} # TODO confirm if this is correct
+    ret = datum.join {ds, join-cols, simple-head}
     @from ret
     @
 
@@ -222,7 +222,6 @@ itf =
     @_d = ret._d
     return @
 
-  # TODO: test
   group: (opt = {}) ->
     {cols,group-func} = opt
     agg = opt.aggregator or {}
