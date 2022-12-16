@@ -1,6 +1,6 @@
 # Change Logs
 
-## v0.0.12 (upcoming)
+## v0.1.0
 
  - Breaking Changes: API changes.
  - Refine document
