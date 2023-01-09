@@ -289,6 +289,7 @@ itf =
     d = @_d.h.map (r,i) ~> d.map (c,j) -> c[i]
     @_d.h = d.splice 0, 1 .0
     @_d.b = d
+    @trim!
     @
 
 

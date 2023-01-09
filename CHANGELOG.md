@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.1.3
+
+ - fix bug: unexpected null value in data after transpose. trim dataset after transpose to fix this.
+
+
 ## v0.1.2
 
  - support `transpose` api

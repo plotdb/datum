@@ -556,6 +556,7 @@ api change:
       });
       this._d.h = d.splice(0, 1)[0];
       this._d.b = d;
+      this.trim();
       return this;
     }
   };
