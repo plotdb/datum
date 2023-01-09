@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.1.2
+
+ - support `transpose` api
+
+
 ## v0.1.1
 
  - support `trim` api

@@ -526,7 +526,6 @@ api change:
     },
     trim: function(){
       var d, isEmpty;
-      this._d.h;
       d = this._d.b.filter(function(r){
         return r.filter(function(it){
           return !(it === "" || it === null || !(it != null));
@@ -545,6 +544,18 @@ api change:
           return !isEmpty[i];
         });
       });
+      return this;
+    },
+    transpose: function(){
+      var d;
+      d = [this._d.h].concat(this._d.b);
+      d = this._d.h.map(function(r, i){
+        return d.map(function(c, j){
+          return c[i];
+        });
+      });
+      this._d.h = d.splice(0, 1)[0];
+      this._d.b = d;
       return this;
     }
   };

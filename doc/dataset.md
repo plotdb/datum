@@ -153,6 +153,7 @@ Data Manipulation APIs:
  - `trim()` - clear up dataset by removing empty rows and columns
    - `""`, `undefined` and `null` will be considered as empty.
    - only rows / columns containing only empty values will be removed.
+ - `transpose()` - transpose dataset, like a sheet.
 
 `datum` class itself also provides above methods, so this is possible:
 

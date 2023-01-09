@@ -277,13 +277,20 @@ itf =
     return @
 
   trim: ->
-    @_d.h
     d = @_d.b.filter (r) -> r.filter(->!(it == "" or it == null or !(it?))).length
     is-empty = @_d.h.map (c,i) ->
       !d.filter((r) ->!(r[i] == "" or r[i] == null or !(r[i])?)).length
     @_d.h = @_d.h.filter (c,i) -> !is-empty[i]
     @_d.b = d.map (r) -> r.filter (c,i) -> !is-empty[i]
     return @
+
+  transpose: ->
+    d = [@_d.h] ++ @_d.b
+    d = @_d.h.map (r,i) ~> d.map (c,j) -> c[i]
+    @_d.h = d.splice 0, 1 .0
+    @_d.b = d
+    @
+
 
 datum.prototype = Object.create(Object.prototype) <<< itf
 datum <<<
