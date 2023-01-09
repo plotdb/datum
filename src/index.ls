@@ -276,6 +276,15 @@ itf =
       body: body
     return @
 
+  trim: ->
+    @_d.h
+    d = @_d.b.filter (r) -> r.filter(->!(it == "" or it == null or !(it?))).length
+    is-empty = @_d.h.map (c,i) ->
+      !d.filter((r) ->!(r[i] == "" or r[i] == null or !(r[i])?)).length
+    @_d.h = @_d.h.filter (c,i) -> !is-empty[i]
+    @_d.b = d.map (r) -> r.filter (c,i) -> !is-empty[i]
+    return @
+
 datum.prototype = Object.create(Object.prototype) <<< itf
 datum <<<
   from: (d) -> if (d instanceof datum) => d.clone! else new datum d

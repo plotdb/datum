@@ -523,6 +523,29 @@ api change:
         body: body
       });
       return this;
+    },
+    trim: function(){
+      var d, isEmpty;
+      this._d.h;
+      d = this._d.b.filter(function(r){
+        return r.filter(function(it){
+          return !(it === "" || it === null || !(it != null));
+        }).length;
+      });
+      isEmpty = this._d.h.map(function(c, i){
+        return !d.filter(function(r){
+          return !(r[i] === "" || r[i] === null || r[i] == null);
+        }).length;
+      });
+      this._d.h = this._d.h.filter(function(c, i){
+        return !isEmpty[i];
+      });
+      this._d.b = d.map(function(r){
+        return r.filter(function(c, i){
+          return !isEmpty[i];
+        });
+      });
+      return this;
     }
   };
   datum.prototype = import$(Object.create(Object.prototype), itf);

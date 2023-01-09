@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.1.1
+
+ - support `trim` api
+
+
 ## v0.1.0
 
  - Breaking Changes: API changes.

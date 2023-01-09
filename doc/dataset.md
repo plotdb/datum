@@ -150,7 +150,9 @@ Data Manipulation APIs:
          - use identity function when a function for certain column is omitted.
        - useful to group different values into one. e.g., this function groups values by tens digit:
          `-> Math.floor(it / 10)`
-
+ - `trim()` - clear up dataset by removing empty rows and columns
+   - `""`, `undefined` and `null` will be considered as empty.
+   - only rows / columns containing only empty values will be removed.
 
 `datum` class itself also provides above methods, so this is possible:
 
