@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.1.4
+
+ - fix bug: trim throws exception when data contains corrupted(undefined) rows
+
+
 ## v0.1.3
 
  - fix bug: unexpected null value in data after transpose. trim dataset after transpose to fix this.

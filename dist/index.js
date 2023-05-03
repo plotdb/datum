@@ -527,7 +527,7 @@ api change:
     trim: function(){
       var d, isEmpty;
       d = this._d.b.filter(function(r){
-        return r.filter(function(it){
+        return r && r.filter(function(it){
           return !(it === "" || it === null || !(it != null));
         }).length;
       });

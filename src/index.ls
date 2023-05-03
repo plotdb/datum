@@ -277,7 +277,7 @@ itf =
     return @
 
   trim: ->
-    d = @_d.b.filter (r) -> r.filter(->!(it == "" or it == null or !(it?))).length
+    d = @_d.b.filter (r) -> r and r.filter(->!(it == "" or it == null or !(it?))).length
     is-empty = @_d.h.map (c,i) ->
       !d.filter((r) ->!(r[i] == "" or r[i] == null or !(r[i])?)).length
     @_d.h = @_d.h.filter (c,i) -> !is-empty[i]
